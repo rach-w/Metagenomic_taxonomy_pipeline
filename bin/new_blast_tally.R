@@ -9,7 +9,7 @@
 # In case of a tie (equal bitscores), the attribution is given to the LCA node 
 #
 # The output is tab-delimited with these fields 
-# # header line with informative metadata
+# 
 # TAXID scientific_name common_name kingdom tally median_evalue min_evalue max_evalue
 # 
 # The output will be written to stdout and will be 

@@ -2,7 +2,8 @@
 
 # A program to split up reads based on taxid of best blast hit(s)
 #
-# Idea is based on Sharon Chao Wooton's distributeReads.pl script
+# Idea is based on Sharon Chao Wooton's distributeReads.pl script, this R script is adapted from Mark Stenglein's 
+# distribute_fasta_by_taxid.pl script
 #
 # Takes 2 files as input:
 # (1) a fasta file used as a blast input
@@ -15,8 +16,6 @@
 # (2) parse fasta file, for each record with a hit, output it to a new file for the
 #     taxid of the best hit
 #
-# Mark Stenglein August 13, 2011
-# Updated: 4/17/2014
 
 library(optparse)
 library(RSQLite)
