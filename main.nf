@@ -18,6 +18,8 @@ OPTIONS:
 
 --output OUTPUT_DIR - [Required] A directory to place output files (If not existing, pipeline will create)
 
+
+
 OPTIONAL:
 
     --host_fasta HOST_FASTA - A host fasta file that the reads will be aligned to to remove host contamination.
@@ -25,6 +27,8 @@ OPTIONAL:
     --host_bt2_index INDEX_DIRECTORY - A directory containing an existing bowtie2 index to be used for host read removal. Must be in its own directory. If using a large genome, this option will greatly improve the pipeline runtime.
 
     --threads INT - The number of threads that can be use to run pipeline tools in parallel
+
+    --ncbi_tax_dir NCBI_TAXONOMY_DIRECTORY - 
 
     --ref REFERENCE_FASTA - The pipeline will align contigs produced by assembly to this reference
 
@@ -399,7 +403,7 @@ workflow {
     // that for alignment.
     if (params.host_fasta) {
         Index_Host_Reference( hostRefData, outDir, params.threads )
-        Host_Read_Removal( Remove_PCR_Duplicates.out[0], outDir, Index_Host_Reference.out, params.alignmentMode, params.threads, Remove_PCR_Duplicates.out[2] )
+        Host_Read_Removal( Remove_PCR_Duplicates.out[0], outDir, Index_Host_Reference.out[0], params.alignmentMode, params.threads, Remove_PCR_Duplicates.out[2] )
         QC_Report_Host_Removed( Host_Read_Removal.out[0], outDir, "FASTQC-Host-Removed", params.threads )
 
         
@@ -444,6 +448,8 @@ workflow {
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
+
+        virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0)        
         
     }
     // If the user supplied an existing bowtie2 index, use that for alignment.
@@ -487,6 +493,7 @@ workflow {
             Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
             Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
             Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
+            virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0) 
             
     }
     else {    
@@ -530,6 +537,8 @@ workflow {
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)Split_Merged_Blastx_Results( Process_Blastn_Output.out[0], Blastx_Remaining_Contigs.out[0], outDir)
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
+        virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0) 
+        
         
     }
     

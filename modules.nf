@@ -173,7 +173,7 @@ process Trimming {
     total_trimmed=\$((\$trimmed_reads_1 + \$trimmed_reads_2))
 
     summary="${base},\$total_raw,\$total_trimmed"
-
+    
 
     """
 
@@ -217,7 +217,11 @@ process Remove_PCR_Duplicates {
     -o ${base}_R1_fu.fastq \
     $paired_output \
 
-    summary="done"
+    deduped_reads_1=\$((\$(gunzip -c ${base}_R1_fu.fastq | wc -l)/4))
+    deduped_reads_2=\$((\$(gunzip -c $paired_output | wc -l)/4))
+
+    total_deduped=\$((\$deduped_reads_1 + \$deduped_reads_2))
+    summary="${existingSummary},\$total_deduped"
 
     """
 }
@@ -328,6 +332,8 @@ process Host_Read_Removal {
 
     mv ${base}_host_removed.1 ${base}_host_removed_1.fastq
     mv ${base}_host_removed.2 ${base}_host_removed_2.fastq
+
+
 
     summary=${existingSummary}
     
@@ -758,7 +764,7 @@ process Tally_Blastn_Results {
   // ${params.scripts_bindir}/tally_blast_hits -ntd $local_tax_db_dir/${params.ncbi_tax_db} -lca -w $contig_weights $blast_out > ${blast_out}.tally
   // ${params.scripts_bindir}/tally_blast_hits -ntd $local_tax_db_dir/${params.ncbi_tax_db} -lca -w $contig_weights -t -ti ${blast_out} > ${blast_out}.tab_tree.tally
   """
-  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blast_out} -f "Viruses"
+  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blast_out} 
   """
 }
 
@@ -863,7 +869,7 @@ process Tally_Blastx_Results {
   script:
   // performs tally with script (default assigns lca)
   """
-  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blastx_out} -f "Viruses" > ${blastx_out}.tally
+  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blastx_out} > ${blastx_out}.tally
   """
 }
 
@@ -885,8 +891,124 @@ process Distribute_Blastx_Results {
   Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db}  -f ${contigs} -b ${blastx_out} -d TRUE -v TRUE
   """
 }
+/*
+process Remap_Reads_to_Virus_Seqs {
+  label 'lowmem_threaded'
+
+  input:
+  tuple val(base), path(virus_fasta), path(input_fastq) 
+  val (outDir)
+  val(threads)
+
+  output:
+  tuple val(base), path("*.sam") 
+
+  publishDir "${outDir}/viruses_remapped", mode:'copy'
+  script:
+  // handle single-end or paired-end inputs
+  def r1 = input_fastq[0]
+  def r2 = input_fastq[1] ? input_fastq[1] : ""
+  def bowtie_file_input  = input_fastq[1] ? "-1 $r1 -2 $r2" : "-U $r1"
+
+  """
+  bowtie2-build $virus_fasta "${virus_fasta}_index"
+
+  bowtie2 \
+  -x "${virus_fasta}_index" \
+  --local \
+  -q \
+  --no-unal \
+  $bowtie_file_input \
+  --sensitive \
+  --score-min "C,${params.host_bt_min_score},0" \
+  -p ${threads} \
+  -S "${virus_fasta}.sam" \
+  2> "${base}.host_filtering_bt.log"
+  """
+}
+*/
+/*
+   Calculate virus remapping coverage stats 
+
+process Virus_Remapping_Coverage_Stats {
+  label 'lowmem_nonthreaded'
+  
+
+  input:
+  tuple val(base), path(sam)
+
+  output:
+  tuple val(base), path("*.txt") 
+  publishDir "${outDir}/remapping_coverage_stats", mode:'copy'   
+  // TODO: version with prepended output
+  // samtools depth !{bam} | awk '{ print !{base} "\t" $0; }' > !{depth}
+  // samtools coverage !{bam} | awk '{ print !{base} "\t" $0; }' > !{cov}
+
+  script:
+  def bam   = sam.getName().replaceAll('.sam$', '.bam')
+  def depth = sam.getName().replaceAll('.sam$', '.depth.txt')
+  def cov   = sam.getName().replaceAll('.sam$', '.cov.txt')
+  """
+  # create sorted bam from sam
+  samtools sort ${sam} > ${bam}
+
+  # create depth file with a prepended column containing sample ID
+  samtools depth ${bam} > ${depth}
+
+  # create coverage stats file with a prepended column containing sample ID
+  samtools coverage ${bam}  > ${cov}
+
+  """
+}
+ */
+/*
+   Output a matrix of # of virus-mapping reads
+*/
+process Virus_Mapping_Matrix {
+  label 'lowmem_nonthreaded'
+
+  input:
+  path(tally_files) 
+
+  output:
+  path("*.txt") 
+  publishDir "${outDir}/virus_mapping_matrix", mode:'copy'
+
+  script:
+  """
+  python3 ${params.scripts_bindir}/make_taxa_matrix.py -v $tally_files > virus_matrix.tsv
+  """
+}
+/*
+all_tally_ch = genus_tally_ch.mix(family_tally_ch, order_tally_ch, class_tally_ch, kingdom_tally_ch, superkingdom_tally_ch)
+   .groupTuple()
 
 
+   Output matrices of # of reads mapping at different taxonomic levels
+
+process  output_taxa_matrices {
+  label 'lowmem_nonthreaded'
+  publishDir "${params.virus_matrix_out_dir}", mode:'link'
+
+  // singularity info for this process
+  if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+      container "https://depot.galaxyproject.org/singularity/perl:5.26.2"
+  } else {
+      container "quay.io/biocontainers/perl:5.26.2"
+  }
+
+  input:
+  tuple val(rank), path(tally_files) from all_tally_ch
+
+  output:
+  path("*.txt") 
+
+  script:
+  """
+  ${params.scripts_bindir}/make_taxa_matrix -r -c ${params.min_matrix_reads} $tally_files > ${rank}_taxa_matrix.txt
+  """
+}
+*/
 
 
 
