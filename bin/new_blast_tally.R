@@ -255,12 +255,15 @@ output_results <- function(taxid_tally, output_suffix) {
   for (taxid in names(taxid_tally)) {
     taxonomy_info <- getTaxonomy(taxid, ncbi_tax_db )
     scientific_name <- ifelse(is.null(taxonomy_info[1,7]), NA, taxonomy_info[1,7])
+    scientific_name <- gsub("'", "", scientific_name, fixed = TRUE)
+    scientific_name <- gsub(" ", "_", scientific_name, fixed = TRUE)
     if(is.na(scientific_name)) next
     common_info <- getCommon(taxid, ncbi_tax_db, c("genbank common name", "common name"))
     
     # Handle cases where common_info might be empty
     if (length(common_info) > 0 && !is.null(common_info[[1]]$name)) {
       common_name <- common_info[[1]]$name[1]
+      common_name <- gsub("'", "", common_name, fixed = TRUE)
     } else {
       common_name <- NA
     }

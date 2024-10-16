@@ -14,10 +14,10 @@ opt = parse_args(OptionParser(option_list=option_list))
 
 taxa_matrix = opt$input
 color = opt$color
+#read tally matrix file
 
-process_tally_file <- function(file){
-    tally_vals <- read.table(taxa_matrix) %>%
-        pivot_longer(cols= -sample_id, names_to="taxid", values_to="tally_count")
-    tidy_heatmap(tally_vals, rows = scientific_name, columns = sample_id, values = tally_count , colors =viridis(), filename = "heatmap.pdf")                      
-}
+tally_vals <- read.table(taxa_matrix, header = TRUE, stringsAsFactors = FALSE, sep = "\t") 
+tidy_heatmap(tally_vals, rows = Scientific_Name, columns = Barcode, values = Tally , filename = "heatmap.pdf")                      
+
+
 

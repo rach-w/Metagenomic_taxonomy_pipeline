@@ -976,7 +976,7 @@ process Virus_Mapping_Matrix {
 
   script:
   """
-  python3 ${params.scripts_bindir}/make_taxa_matrix.py -v $tally_files > virus_matrix.tsv
+  python3 ${params.scripts_bindir}/make_taxa_matrix.py -v ${tally_files} > virus_matrix.tsv
   """
 }
 /*
