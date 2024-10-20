@@ -963,6 +963,9 @@ process Virus_Remapping_Coverage_Stats {
   """
 }
  */
+ /*
+    Normalize tally values to be based on reads per unique million reads
+ */
 
  process Normalize_Tallies{
   label 'lowmem_nonthreaded'
@@ -973,16 +976,12 @@ process Virus_Remapping_Coverage_Stats {
   val outDir
 
   output:
-  path("*bn_nt.tally") 
+  path("*_normalized.tally") 
   publishDir "${outDir}/tally_results", mode:'link'
   script:
 
-  // TODO: move tally_blast_hits logic into an R script?
-  // TODO: tally_blast_hits shouldn't need to do accession->taxid lookups if taxid are in blast results
-  // ${params.scripts_bindir}/tally_blast_hits -ntd $local_tax_db_dir/${params.ncbi_tax_db} -lca -w $contig_weights $blast_out > ${blast_out}.tally
-  // ${params.scripts_bindir}/tally_blast_hits -ntd $local_tax_db_dir/${params.ncbi_tax_db} -lca -w $contig_weights -t -ti ${blast_out} > ${blast_out}.tab_tree.tally
   """
-  Rscript ${params.scripts_bindir}/normalize_tally.R -i ${blast_}
+  Rscript ${params.scripts_bindir}/normalize_tally.R -i ${all_tally_files}
   """
  }
 /*
