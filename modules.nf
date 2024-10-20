@@ -194,6 +194,7 @@ process Remove_PCR_Duplicates {
 
     output:
     tuple val(base), path("*_fu.fastq") 
+    val(unique_reads)
     
     env summary 
 
@@ -221,6 +222,7 @@ process Remove_PCR_Duplicates {
     deduped_reads_2=\$((\$(gunzip -c $paired_output | wc -l)/4))
 
     total_deduped=\$((\$deduped_reads_1 + \$deduped_reads_2))
+    ${unique_reads} = total_deduped
     summary="${existingSummary},\$total_deduped"
 
     """
@@ -961,6 +963,28 @@ process Virus_Remapping_Coverage_Stats {
   """
 }
  */
+
+ process Normalize_Tallies{
+  label 'lowmem_nonthreaded'
+  
+  input:
+  path(all_tally_files)
+  val unqiue_reads
+  val outDir
+
+  output:
+  path("*bn_nt.tally") 
+  publishDir "${outDir}/tally_results", mode:'link'
+  script:
+
+  // TODO: move tally_blast_hits logic into an R script?
+  // TODO: tally_blast_hits shouldn't need to do accession->taxid lookups if taxid are in blast results
+  // ${params.scripts_bindir}/tally_blast_hits -ntd $local_tax_db_dir/${params.ncbi_tax_db} -lca -w $contig_weights $blast_out > ${blast_out}.tally
+  // ${params.scripts_bindir}/tally_blast_hits -ntd $local_tax_db_dir/${params.ncbi_tax_db} -lca -w $contig_weights -t -ti ${blast_out} > ${blast_out}.tab_tree.tally
+  """
+  Rscript ${params.scripts_bindir}/normalize_tally.R -i ${blast_}
+  """
+ }
 /*
    Output a matrix of # of virus-mapping reads
 */
@@ -968,47 +992,37 @@ process Virus_Mapping_Matrix {
   label 'lowmem_nonthreaded'
 
   input:
-  path(tally_files) 
+  path(normalized_tally_files) 
+  val(outDir)
 
   output:
-  path("*.txt") 
+  path("*.tsv") 
   publishDir "${outDir}/virus_mapping_matrix", mode:'copy'
 
   script:
   """
-  python3 ${params.scripts_bindir}/make_taxa_matrix.py -v ${tally_files} > virus_matrix.tsv
+  Rscript ${params.scripts_bindir}/taxa_matrix.R -v TRUE -i ${tally_files} > virus_matrix.tsv
   """
 }
-/*
-all_tally_ch = genus_tally_ch.mix(family_tally_ch, order_tally_ch, class_tally_ch, kingdom_tally_ch, superkingdom_tally_ch)
-   .groupTuple()
 
-
-   Output matrices of # of reads mapping at different taxonomic levels
-
-process  output_taxa_matrices {
+process Create_Heatmap{
   label 'lowmem_nonthreaded'
-  publishDir "${params.virus_matrix_out_dir}", mode:'link'
-
-  // singularity info for this process
-  if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
-      container "https://depot.galaxyproject.org/singularity/perl:5.26.2"
-  } else {
-      container "quay.io/biocontainers/perl:5.26.2"
-  }
 
   input:
-  tuple val(rank), path(tally_files) from all_tally_ch
+  path(mapping_matrix)
 
   output:
-  path("*.txt") 
+  path("*.pdf")
+  publishDir "${outDir}/heatmap", mode: 'copy'
 
   script:
   """
-  ${params.scripts_bindir}/make_taxa_matrix -r -c ${params.min_matrix_reads} $tally_files > ${rank}_taxa_matrix.txt
+  Rscript  ${params.scripts_bindir}/generate_heatmap.R -i ${mapping_matrix}
   """
 }
-*/
+
+
+
 
 
 

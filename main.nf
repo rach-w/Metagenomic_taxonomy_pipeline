@@ -452,7 +452,7 @@ workflow {
 
         virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0)        
         all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
-        Virus_Mapping_Matrix(all_tally_ch)
+        Virus_Mapping_Matrix(all_tally_ch, Remove_PCR_Duplicates.out[1])
     }
     // If the user supplied an existing bowtie2 index, use that for alignment.
     else if (params.host_bt2_index) {
@@ -497,7 +497,7 @@ workflow {
             Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
             virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0) 
             all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
-            Virus_Mapping_Matrix(all_tally_ch)
+            Virus_Mapping_Matrix(all_tally_ch, Remove_PCR_Duplicates.out[1])
             
     }
     else {    
@@ -543,7 +543,7 @@ workflow {
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
         virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0) 
         all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
-        Virus_Mapping_Matrix(all_tally_ch)
+        Virus_Mapping_Matrix(all_tally_ch, Remove_PCR_Duplicates.out[1])
         
     }
     
