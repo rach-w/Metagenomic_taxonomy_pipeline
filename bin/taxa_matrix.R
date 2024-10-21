@@ -44,7 +44,7 @@ output <- data.frame(
 tally_files <- unlist(strsplit(args$input_tally, ","))
 for (tally_file in tally_files) {
 
-  blastn <- grepl(tally_file, "bn_nt", fixed = TRUE) 
+  blastn <- grepl("bn_nt", tally_file, fixed = TRUE) 
   # Extract barcode from filename
   barcode <- sub("\\..*$", "", tally_file)
   if (barcode == tally_file) {

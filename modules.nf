@@ -194,7 +194,7 @@ process Remove_PCR_Duplicates {
 
     output:
     tuple val(base), path("*_fu.fastq") 
-    val(unique_reads)
+    val total_deduped
     
     env summary 
 
@@ -222,7 +222,6 @@ process Remove_PCR_Duplicates {
     deduped_reads_2=\$((\$(gunzip -c $paired_output | wc -l)/4))
 
     total_deduped=\$((\$deduped_reads_1 + \$deduped_reads_2))
-    ${unique_reads} = total_deduped
     summary="${existingSummary},\$total_deduped"
 
     """

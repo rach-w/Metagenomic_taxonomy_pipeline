@@ -451,7 +451,7 @@ workflow {
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)       
         all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results.out[0]).collect()
-        Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
+        Virus_Mapping_Matrix(all_tally_ch, outDir)
         Create_Heatmap(Virus_Mapping_Matrix.out[0])
     }
     // If the user supplied an existing bowtie2 index, use that for alignment.
@@ -496,7 +496,7 @@ workflow {
             Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
             Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir) 
             all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results.out[0]).collect()
-            Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
+            Virus_Mapping_Matrix(all_tally_ch, outDir)
             Create_Heatmap(Virus_Mapping_Matrix.out[0])
             
     }
@@ -542,7 +542,7 @@ workflow {
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
         all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results.out[0]).collect()
-        Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
+        Virus_Mapping_Matrix(all_tally_ch, outDir)
         Create_Heatmap(Virus_Mapping_Matrix.out[0])
     }
     
