@@ -755,6 +755,7 @@ process Tally_Blastn_Results {
   tuple val(base), path(contig_weights), path(blast_out)
   path(tax_db) 
   val outDir
+  val unique_reads
 
   output:
   path("*bn_nt.tally") 
@@ -766,7 +767,7 @@ process Tally_Blastn_Results {
   // ${params.scripts_bindir}/tally_blast_hits -ntd $local_tax_db_dir/${params.ncbi_tax_db} -lca -w $contig_weights $blast_out > ${blast_out}.tally
   // ${params.scripts_bindir}/tally_blast_hits -ntd $local_tax_db_dir/${params.ncbi_tax_db} -lca -w $contig_weights -t -ti ${blast_out} > ${blast_out}.tab_tree.tally
   """
-  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blast_out} 
+  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blast_out} -u ${unique_reads} 
   """
 }
 
@@ -862,6 +863,7 @@ process Tally_Blastx_Results {
   tuple val(base), path(contig_weights), path(blastx_out) 
   path(tax_db)
   val outDir
+  val unique_reads
 
   output:
   path("*bx_nr.tally")
@@ -871,7 +873,7 @@ process Tally_Blastx_Results {
   script:
   // performs tally with script (default assigns lca)
   """
-  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blastx_out} > ${blastx_out}.tally
+  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blastx_out} -u ${unique_reads}> ${blastx_out}.tally
   """
 }
 
@@ -963,27 +965,7 @@ process Virus_Remapping_Coverage_Stats {
   """
 }
  */
- /*
-    Normalize tally values to be based on reads per unique million reads
- */
 
- process Normalize_Tallies{
-  label 'lowmem_nonthreaded'
-  
-  input:
-  path(all_tally_files)
-  val unqiue_reads
-  val outDir
-
-  output:
-  path("*_normalized.tally") 
-  publishDir "${outDir}/tally_results", mode:'link'
-  script:
-
-  """
-  Rscript ${params.scripts_bindir}/normalize_tally.R -i ${all_tally_files}
-  """
- }
 /*
    Output a matrix of # of virus-mapping reads
 */

@@ -151,7 +151,6 @@ include { Blastx_Remaining_Contigs} from './modules.nf'
 include { Split_Merged_Blastx_Results} from './modules.nf'
 include { Tally_Blastx_Results} from './modules.nf'
 include { Distribute_Blastx_Results} from './modules.nf'
-include { Normalize_Tallies} from './modules.nf'
 include { Virus_Mapping_Matrix} from '.modules.nf'
 adapters = file("${baseDir}/adapters.fa")
 
@@ -430,7 +429,7 @@ workflow {
         //adds header to blast data & outputs fasta file of contigs/singletons that didn't match
         Process_Blastn_Output(Blastn_Contigs.out[0], Quantify_Read_Mapping.out[1], outDir)
         //perform tally on blast results
-        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir)
+        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
         //create seperate fasta files for top hits of blastn search
         Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
 
@@ -448,12 +447,11 @@ workflow {
             .set{merged_blastx_with_input_ch}
             
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
-        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
+        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
 
         virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0)        
         all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
-        Normalize_Tallies(all_tally_ch, Remove_PCR_Duplicates.out[1], outDir)
         Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
     }
     // If the user supplied an existing bowtie2 index, use that for alignment.
@@ -479,7 +477,7 @@ workflow {
             //adds header to blast data & outputs fasta file of contigs/singletons that didn't match
             Process_Blastn_Output(Blastn_Contigs.out[0], Quantify_Read_Mapping.out[1],outDir)
             //perform tally on blast results
-            Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir)
+            Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
             //create seperate fasta files for top hits of blastn search
             Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
 
@@ -495,11 +493,10 @@ workflow {
                 .combine(Process_Blastn_Output.out[0])     
                 .set{merged_blastx_with_input_ch} 
             Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
-            Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
+            Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
             Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
             virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0) 
             all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
-            Normalize_Tallies(all_tally_ch, Remove_PCR_Duplicates.out[1], outDir)
             Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
             
     }
@@ -524,7 +521,7 @@ workflow {
         //adds header to blast data & outputs fasta file of contigs/singletons that didn't match
         Process_Blastn_Output(Blastn_Contigs.out[0], Quantify_Read_Mapping.out[1],outDir)
         //perform tally on blast results
-        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir)
+        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
         //create seperate fasta files for top hits of blastn search
         Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
 
@@ -542,11 +539,10 @@ workflow {
             .set{merged_blastx_with_input_ch} 
         //split back into seperate files 
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)Split_Merged_Blastx_Results( Process_Blastn_Output.out[0], Blastx_Remaining_Contigs.out[0], outDir)
-        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
+        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
         virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0) 
         all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
-        Normalize_Tallies(all_tally_ch, Remove_PCR_Duplicates.out[1], outDir)
         Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
         
     }

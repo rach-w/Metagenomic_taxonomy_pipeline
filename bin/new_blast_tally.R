@@ -33,7 +33,8 @@ option_list = list(
   make_option(c("-w", "--query_weight_file"), type="character", help="File with query weights"),
   make_option(c("-c", "--out_tally_cutoff"), type="numeric", default=0, help="Tally cutoff for output (default 0)"),
   make_option(c("-n", "--ncbi_tax_db"), type="character", help="Path to sqlite database file with info from the NCBI Taxonomy database"),
-  make_option(c("-f", "--filter"), type="character", help="Kingdom to filter for")
+  make_option(c("-f", "--filter"), type="character", help="Kingdom to filter for"),
+  make_option(c("-u", "--unique_reads"), type = "numeric", help="Unique reads from sample")
 )
 
 # Parse the arguments
@@ -47,6 +48,7 @@ query_weight_file = opt$query_weight_file
 ncbi_tax_db = opt$ncbi_tax_db
 tally_cutoff = opt$out_tally_cutoff
 filter = opt$filter
+unique_reads = opt$unique_reads
 
 
 # Function to read query weight file (if provided)
@@ -244,6 +246,7 @@ output_results <- function(taxid_tally, output_suffix) {
                           Common_Name = character(),
                           Kingdom = character(),
                           Tally = numeric(),
+                          Normalized_tally = numeric(),
                           Median_evalue = numeric(),
                           Min_evalue = numeric(),
                           Max_evalue = numeric(),
@@ -278,6 +281,7 @@ output_results <- function(taxid_tally, output_suffix) {
     
     # Check if any of these are NA, and if so, handle accordingly
     tally <- length(taxid_tally[[taxid]]$queries)
+    normalized_tally <- tally/unique_reads * 1000000
     median_evalue <- taxid_tally[[taxid]]$median_evalue
     min_evalue <- taxid_tally[[taxid]]$min_evalue
     max_evalue <- taxid_tally[[taxid]]$max_evalue
@@ -295,6 +299,7 @@ output_results <- function(taxid_tally, output_suffix) {
       Common_Name = common_name,
       Kingdom = kingdom,
       Tally = tally,
+      Normalized_tally = normalized_tally,
       Median_evalue = median_evalue,
       Min_evalue = min_evalue,
       Max_evalue = max_evalue,
