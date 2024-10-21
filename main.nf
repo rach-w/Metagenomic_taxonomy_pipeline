@@ -151,7 +151,7 @@ include { Blastx_Remaining_Contigs} from './modules.nf'
 include { Split_Merged_Blastx_Results} from './modules.nf'
 include { Tally_Blastx_Results} from './modules.nf'
 include { Distribute_Blastx_Results} from './modules.nf'
-include { Virus_Mapping_Matrix} from '.modules.nf'
+include { Virus_Mapping_Matrix} from './modules.nf'
 include { Create_Heatmap} from './modules.nf'
 adapters = file("${baseDir}/adapters.fa")
 
@@ -449,10 +449,8 @@ workflow {
             
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
-        Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
-
-        virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0)        
-        all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
+        Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)       
+        all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results.out[0]).collect()
         Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
         Create_Heatmap(Virus_Mapping_Matrix.out[0])
     }
@@ -496,9 +494,8 @@ workflow {
                 .set{merged_blastx_with_input_ch} 
             Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
             Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
-            Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
-            virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0) 
-            all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
+            Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir) 
+            all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results.out[0]).collect()
             Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
             Create_Heatmap(Virus_Mapping_Matrix.out[0])
             
@@ -544,8 +541,7 @@ workflow {
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)Split_Merged_Blastx_Results( Process_Blastn_Output.out[0], Blastx_Remaining_Contigs.out[0], outDir)
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
-        virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0) 
-        all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
+        all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results.out[0]).collect()
         Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
         Create_Heatmap(Virus_Mapping_Matrix.out[0])
     }

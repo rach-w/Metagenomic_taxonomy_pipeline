@@ -43,6 +43,8 @@ output <- data.frame(
 # Process each tally file
 tally_files <- unlist(strsplit(args$input_tally, ","))
 for (tally_file in tally_files) {
+
+  blastn <- grepl(tally_file, "bn_nt", fixed = TRUE) 
   # Extract barcode from filename
   barcode <- sub("\\..*$", "", tally_file)
   if (barcode == tally_file) {
@@ -110,7 +112,8 @@ for (tally_file in tally_files) {
             Scientific_Name = scientific_name,
             Common_Name = common_name,
             Kingdom = kingdom,
-            Normalized_tally = normalized_tally
+            Normalized_tally = normalized_tally,
+            Blastn = blastn
             ))
     
   }
