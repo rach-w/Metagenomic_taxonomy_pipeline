@@ -152,6 +152,7 @@ include { Split_Merged_Blastx_Results} from './modules.nf'
 include { Tally_Blastx_Results} from './modules.nf'
 include { Distribute_Blastx_Results} from './modules.nf'
 include { Virus_Mapping_Matrix} from '.modules.nf'
+include { Create_Heatmap} from './modules.nf'
 adapters = file("${baseDir}/adapters.fa")
 
 // Checks the input parameter
@@ -453,6 +454,7 @@ workflow {
         virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0)        
         all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
         Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
+        Create_Heatmap(Virus_Mapping_Matrix.out[0])
     }
     // If the user supplied an existing bowtie2 index, use that for alignment.
     else if (params.host_bt2_index) {
@@ -498,6 +500,7 @@ workflow {
             virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0) 
             all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
             Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
+            Create_Heatmap(Virus_Mapping_Matrix.out[0])
             
     }
     else {    
@@ -544,7 +547,7 @@ workflow {
         virus_remap_ch = Distribute_Blastn_Results.out[0].transpose().combine(Host_Read_Removal.out[0], by: 0) 
         all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results).collect()
         Virus_Mapping_Matrix(Normalize_Tallies.out[0], outDir)
-        
+        Create_Heatmap(Virus_Mapping_Matrix.out[0])
     }
     
     

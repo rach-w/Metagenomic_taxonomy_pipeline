@@ -281,7 +281,7 @@ output_results <- function(taxid_tally, output_suffix) {
     
     # Check if any of these are NA, and if so, handle accordingly
     tally <- length(taxid_tally[[taxid]]$queries)
-    normalized_tally <- tally/unique_reads * 1000000
+    normalized_tally <- round(tally/unique_reads * 1000000)
     median_evalue <- taxid_tally[[taxid]]$median_evalue
     min_evalue <- taxid_tally[[taxid]]$min_evalue
     max_evalue <- taxid_tally[[taxid]]$max_evalue
