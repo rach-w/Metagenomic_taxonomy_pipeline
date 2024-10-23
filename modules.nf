@@ -172,7 +172,7 @@ process Trimming {
 
     total_trimmed=\$((\$trimmed_reads_1 + \$trimmed_reads_2))
 
-    summary="${base},\$total_raw,\$total_trimmed"
+    summary="base: ${base}, raw: \$total_raw, trimmed: \$total_trimmed"
     
 
     """
@@ -181,11 +181,7 @@ process Trimming {
 // Removes PCR Duplicates from a set of reads using prinseq.
 process Remove_PCR_Duplicates {
     input:
-    // the filter{size()} functionality here checks if fastq is empty, 
-    // which causes cd-hit-dup to choke
-    // see: https://stackoverflow.com/questions/47401518/nextflow-is-an-input-file-empty  
-    // this means that fastq that are empty at this stage will just stop going through pipeline 
-    // TODO: there shouldn't be an asterisk (spread operator) in this filter step ?  
+    //tuple with sample id/basename & fastq
     tuple val(base), path(input_fastq)
     // The output directory
     val outDir
@@ -193,9 +189,11 @@ process Remove_PCR_Duplicates {
     val existingSummary
 
     output:
+    //tuple with base & dedupelicated fastq file
     tuple val(base), path("*_fu.fastq") 
-    val total_deduped
-    
+    //number of unique reads to be used for reads mapped per million unique reads calculation
+    env total_deduped
+    //summary string to be written
     env summary 
 
     script:
@@ -222,7 +220,7 @@ process Remove_PCR_Duplicates {
     deduped_reads_2=\$((\$(gunzip -c $paired_output | wc -l)/4))
 
     total_deduped=\$((\$deduped_reads_1 + \$deduped_reads_2))
-    summary="${existingSummary},\$total_deduped"
+    summary="${existingSummary}, deduped: \$total_deduped"
 
     """
 }

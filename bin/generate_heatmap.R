@@ -17,6 +17,8 @@ color = opt$color
 #read tally matrix file
 
 tally_vals <- read.table(taxa_matrix, header = TRUE, stringsAsFactors = FALSE, sep = "\t") 
+
+#generate heatmao
 tidy_heatmap(tally_vals, rows = Scientific_Name, columns = Barcode, values = Tally , filename = "heatmap.pdf")                      
 
 
