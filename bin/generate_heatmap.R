@@ -4,6 +4,8 @@ library(tidyverse)
 library(viridis)
 library(tidyheatmaps)
 library(optparse)
+library(ggplot2)
+
 
 option_list = list(
     make_option(c("-i", "--input"), type="character", help="input virus taxa matrix to generate heatmap of"),
@@ -19,7 +21,10 @@ color = opt$color
 tally_vals <- read.table(taxa_matrix, header = TRUE, stringsAsFactors = FALSE, sep = "\t") 
 
 #generate heatmao
-tidy_heatmap(tally_vals, rows = Scientific_Name, columns = Barcode, values = Tally , filename = "heatmap.pdf")                      
-
+#tidy_heatmap(tally_vals, rows = TAXID, columns = Barcode, values = Normalized_tally , filename = "heatmap.pdf")  + scale_fill_viridis()                    
+ggplot(tally_vals, aes(x = Scientific_Name, Barcode)) +
+  geom_tile(aes(fill = Normalized_tally)) +
+  scale_fill_viridis() +
+  theme(axis.text.x = element_text(angle = 90))
 
 

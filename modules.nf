@@ -136,7 +136,7 @@ process Trimming {
     output:
     tuple val(base), path("*_f.fastq") 
     tuple val(base), path("*_f.fastq")
-    env summary 
+    env 'summary' 
 
     // TODO: parameterize adapter sequences
     script:
@@ -192,9 +192,9 @@ process Remove_PCR_Duplicates {
     //tuple with base & dedupelicated fastq file
     tuple val(base), path("*_fu.fastq") 
     //number of unique reads to be used for reads mapped per million unique reads calculation
-    env total_deduped
+    env 'total_deduped'
     //summary string to be written
-    env summary 
+    env 'summary' 
 
     script:
 
@@ -216,11 +216,11 @@ process Remove_PCR_Duplicates {
     -o ${base}_R1_fu.fastq \
     $paired_output \
 
-    deduped_reads_1=\$((\$(gunzip -c ${base}_R1_fu.fastq | wc -l)/4))
-    deduped_reads_2=\$((\$(gunzip -c $paired_output | wc -l)/4))
+    deduped_reads_1=$(( $(gunzip -c ${base}_R1_fu.fastq | wc -l) / 4 ))
+    deduped_reads_2=$(( $(gunzip -c $paired_output | wc -l) / 4 ))
 
-    total_deduped=\$((\$deduped_reads_1 + \$deduped_reads_2))
-    summary="${existingSummary}, deduped: \$total_deduped"
+    total_deduped=$(( deduped_reads_1 + deduped_reads_2 ))
+    summary="${existingSummary}, deduped: $total_deduped"
 
     """
 }
@@ -245,7 +245,7 @@ process Bowtie2Alignment {
         // Tuple contains the file basename and the alignment in a sorted bam file
         tuple val(base), file("${base}.bam")
         // The summary string containing the number of mapped reads
-        env summary
+        env 'summary'
     
     publishDir "${outDir}/${base}-Intermediate-Files/", mode: 'copy', pattern: "${base}.bam"
 
@@ -294,7 +294,7 @@ process Host_Read_Removal {
         // A directory containing the alignment to the host file.
         file "host-reads/${base}-host.sam"
         // The summary string containing the number of reads post host removal
-        env summary
+        env 'summary'
     
     publishDir "${outDir}/${base}-Intermediate-Files/Processed-Reads", mode: 'copy'
 
@@ -358,7 +358,7 @@ process Spades_Assembly {
         // The scaffolds produced by spades
         file "${base}-scaffolds.fasta"
         // The summary string containing the number of contigs and scaffolds
-        env summary
+        env 'summary'
 
         tuple val(base), path(input_fastq)
     
@@ -543,7 +543,7 @@ process Contig_Alignment {
     samtools view -b align.sam | samtools sort > ${base}-contig-align.bam
 
     
-        """
+    """
 }
 
 // Writes a line to the summary file for the sample.
@@ -870,7 +870,7 @@ process Tally_Blastx_Results {
   script:
   // performs tally with script (default assigns lca)
   """
-  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blastx_out} -u ${unique_reads}> ${blastx_out}.tally
+  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blastx_out} -u ${unique_reads} > ${blastx_out}.tally
   """
 }
 
@@ -979,7 +979,7 @@ process Virus_Mapping_Matrix {
 
   script:
   """
-  Rscript ${params.scripts_bindir}/taxa_matrix.R -v TRUE -i ${tally_files} > virus_matrix.tsv
+  Rscript ${params.scripts_bindir}/taxa_matrix.R -v TRUE -i ${normalized_tally_files} > virus_matrix.tsv
   """
 }
 

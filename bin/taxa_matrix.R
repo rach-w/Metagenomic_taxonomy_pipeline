@@ -10,7 +10,8 @@ option_list <- list(
   make_option(c("-c", "--tally_cutoff"), type = "numeric", default = 0, help = "Only output a read count value if value is > this cutoff"),
   make_option(c("-v", "--virus_only"), type= "logical", default = FALSE, help = "Only include virus taxids in matrix"),
   make_option(c("-p", "--no_phage"), type = "logical", default = FALSE, help = "Exclude phage taxids"),
-  make_option(c("-i", "--input_tally"), type = "character", help = "input tally matrices")
+  make_option(c("-i", "--input_tally"), type = "character", help = "input tally matrices"),
+  make_option(c("-e". "--exclude_family"), type = "character", default = NULL, help = "Exclude a family of taxids from output")
 ) 
 
 parser <- OptionParser(option_list = option_list)
@@ -96,6 +97,9 @@ for (tally_file in tally_files) {
     }
     if (args$no_phage && grepl("phage", scientific_name, ignore.case = TRUE)) {
       next
+    }
+    if (!is.null(args$exclude_family) && grepl(args$exclude_family, scientific_name, ignore.case = TRUE)){
+        next
     }
 
     if (!(taxid %in% names(taxid_name_map))) {

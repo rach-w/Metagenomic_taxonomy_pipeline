@@ -18,8 +18,6 @@ OPTIONS:
 
 --output OUTPUT_DIR - [Required] A directory to place output files (If not existing, pipeline will create)
 
-
-
 OPTIONAL:
 
     --host_fasta HOST_FASTA - A host fasta file that the reads will be aligned to to remove host contamination.
@@ -27,8 +25,6 @@ OPTIONAL:
     --host_bt2_index INDEX_DIRECTORY - A directory containing an existing bowtie2 index to be used for host read removal. Must be in its own directory. If using a large genome, this option will greatly improve the pipeline runtime.
 
     --threads INT - The number of threads that can be use to run pipeline tools in parallel
-
-    --ncbi_tax_dir NCBI_TAXONOMY_DIRECTORY - 
 
     --ref REFERENCE_FASTA - The pipeline will align contigs produced by assembly to this reference
 
@@ -151,8 +147,6 @@ include { Blastx_Remaining_Contigs} from './modules.nf'
 include { Split_Merged_Blastx_Results} from './modules.nf'
 include { Tally_Blastx_Results} from './modules.nf'
 include { Distribute_Blastx_Results} from './modules.nf'
-include { Virus_Mapping_Matrix} from './modules.nf'
-include { Create_Heatmap} from './modules.nf'
 adapters = file("${baseDir}/adapters.fa")
 
 // Checks the input parameter
@@ -405,7 +399,7 @@ workflow {
     // that for alignment.
     if (params.host_fasta) {
         Index_Host_Reference( hostRefData, outDir, params.threads )
-        Host_Read_Removal( Remove_PCR_Duplicates.out[0], outDir, Index_Host_Reference.out[0], params.alignmentMode, params.threads, Remove_PCR_Duplicates.out[2] )
+        Host_Read_Removal( Remove_PCR_Duplicates.out[0], outDir, Index_Host_Reference.out, params.alignmentMode, params.threads, Remove_PCR_Duplicates.out[2] )
         QC_Report_Host_Removed( Host_Read_Removal.out[0], outDir, "FASTQC-Host-Removed", params.threads )
 
         
@@ -430,7 +424,7 @@ workflow {
         //adds header to blast data & outputs fasta file of contigs/singletons that didn't match
         Process_Blastn_Output(Blastn_Contigs.out[0], Quantify_Read_Mapping.out[1], outDir)
         //perform tally on blast results
-        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
+        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir)
         //create seperate fasta files for top hits of blastn search
         Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
 
@@ -448,11 +442,9 @@ workflow {
             .set{merged_blastx_with_input_ch}
             
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
-        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
-        Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)       
-        all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results.out[0]).collect()
-        Virus_Mapping_Matrix(all_tally_ch, outDir)
-        Create_Heatmap(Virus_Mapping_Matrix.out[0])
+        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
+        Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
+        
     }
     // If the user supplied an existing bowtie2 index, use that for alignment.
     else if (params.host_bt2_index) {
@@ -477,7 +469,7 @@ workflow {
             //adds header to blast data & outputs fasta file of contigs/singletons that didn't match
             Process_Blastn_Output(Blastn_Contigs.out[0], Quantify_Read_Mapping.out[1],outDir)
             //perform tally on blast results
-            Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
+            Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir)
             //create seperate fasta files for top hits of blastn search
             Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
 
@@ -493,11 +485,8 @@ workflow {
                 .combine(Process_Blastn_Output.out[0])     
                 .set{merged_blastx_with_input_ch} 
             Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
-            Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
-            Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir) 
-            all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results.out[0]).collect()
-            Virus_Mapping_Matrix(all_tally_ch, outDir)
-            Create_Heatmap(Virus_Mapping_Matrix.out[0])
+            Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
+            Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
             
     }
     else {    
@@ -521,7 +510,7 @@ workflow {
         //adds header to blast data & outputs fasta file of contigs/singletons that didn't match
         Process_Blastn_Output(Blastn_Contigs.out[0], Quantify_Read_Mapping.out[1],outDir)
         //perform tally on blast results
-        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
+        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir)
         //create seperate fasta files for top hits of blastn search
         Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
 
@@ -539,11 +528,9 @@ workflow {
             .set{merged_blastx_with_input_ch} 
         //split back into seperate files 
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)Split_Merged_Blastx_Results( Process_Blastn_Output.out[0], Blastx_Remaining_Contigs.out[0], outDir)
-        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[1])
+        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
-        all_tally_ch = Tally_Blastn_Results.out[0].mix(Tally_Blastx_Results.out[0]).collect()
-        Virus_Mapping_Matrix(all_tally_ch, outDir)
-        Create_Heatmap(Virus_Mapping_Matrix.out[0])
+        
     }
     
     
