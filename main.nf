@@ -366,6 +366,7 @@ assembler = 'SPADES'
 
 summaryHeader = createSummaryHeader(params.host_fasta, params.host_bt2_index)
 
+total_deduped = 0
 
 workflow {
 
@@ -381,7 +382,7 @@ workflow {
     QC_Report_Trimmed( Trimming.out[0], outDir, "FASTQC-Trimmed", params.threads )
 
     // Perform PCR Duplicate removal using prinseq.
-    Remove_PCR_Duplicates( Trimming.out[0], outDir, Trimming.out[2] )
+    Remove_PCR_Duplicates( Trimming.out[0], outDir, Trimming.out[2] , total_deduped)
 
     // Use FASTQC to perform a QC check on the deduped reads.
     QC_Report_Deduped( Remove_PCR_Duplicates.out[0], outDir, "FASTQC-Deduplicated", params.threads )
@@ -399,7 +400,7 @@ workflow {
     // that for alignment.
     if (params.host_fasta) {
         Index_Host_Reference( hostRefData, outDir, params.threads )
-        Host_Read_Removal( Remove_PCR_Duplicates.out[0], outDir, Index_Host_Reference.out, params.alignmentMode, params.threads, Remove_PCR_Duplicates.out[2] )
+        Host_Read_Removal( Remove_PCR_Duplicates.out[0], outDir, Index_Host_Reference.out, params.alignmentMode, params.threads, Remove_PCR_Duplicates.out[1] )
         QC_Report_Host_Removed( Host_Read_Removal.out[0], outDir, "FASTQC-Host-Removed", params.threads )
 
         
@@ -424,7 +425,7 @@ workflow {
         //adds header to blast data & outputs fasta file of contigs/singletons that didn't match
         Process_Blastn_Output(Blastn_Contigs.out[0], Quantify_Read_Mapping.out[1], outDir)
         //perform tally on blast results
-        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir)
+        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
         //create seperate fasta files for top hits of blastn search
         Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
 
@@ -442,7 +443,7 @@ workflow {
             .set{merged_blastx_with_input_ch}
             
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
-        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
+        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
         
     }
@@ -469,7 +470,7 @@ workflow {
             //adds header to blast data & outputs fasta file of contigs/singletons that didn't match
             Process_Blastn_Output(Blastn_Contigs.out[0], Quantify_Read_Mapping.out[1],outDir)
             //perform tally on blast results
-            Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir)
+            Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
             //create seperate fasta files for top hits of blastn search
             Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
 
@@ -485,7 +486,7 @@ workflow {
                 .combine(Process_Blastn_Output.out[0])     
                 .set{merged_blastx_with_input_ch} 
             Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
-            Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
+            Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
             Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
             
     }
@@ -510,7 +511,7 @@ workflow {
         //adds header to blast data & outputs fasta file of contigs/singletons that didn't match
         Process_Blastn_Output(Blastn_Contigs.out[0], Quantify_Read_Mapping.out[1],outDir)
         //perform tally on blast results
-        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir)
+        Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
         //create seperate fasta files for top hits of blastn search
         Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
 
@@ -528,7 +529,7 @@ workflow {
             .set{merged_blastx_with_input_ch} 
         //split back into seperate files 
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)Split_Merged_Blastx_Results( Process_Blastn_Output.out[0], Blastx_Remaining_Contigs.out[0], outDir)
-        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir)
+        Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
         
     }

@@ -167,12 +167,12 @@ process Trimming {
     $initial_fastq 
     --info-file trim_summary.tsv
     
-    trimmed_reads_1=\$((\$(cat ${base}_R1_f.trimmed.fastq | wc -l)/4))
-    trimmed_reads_2=\$((\$(cat ${base}_R2_f.fastq | wc -l)/4))
+    trimmed_reads_1="\$(\$(cat ${base}_R1_f.trimmed.fastq | wc -l)/4)"
+    trimmed_reads_2="\$(\$(cat ${base}_R2_f.fastq | wc -l)/4)"
 
-    total_trimmed=\$((\$trimmed_reads_1 + \$trimmed_reads_2))
+    total_trimmed="\$(\$trimmed_reads_1 + \$trimmed_reads_2)"
 
-    summary="base: ${base}, raw: \$total_raw, trimmed: \$total_trimmed"
+    summary="\$total_trimmmed"
     
 
     """
@@ -188,13 +188,15 @@ process Remove_PCR_Duplicates {
     // The existing summary file
     val existingSummary
 
+    val total_deduped
+
     output:
     //tuple with base & dedupelicated fastq file
     tuple val(base), path("*_fu.fastq") 
+    //summary string to be written
+    env 'summary'
     //number of unique reads to be used for reads mapped per million unique reads calculation
     env 'total_deduped'
-    //summary string to be written
-    env 'summary' 
 
     script:
 
@@ -216,11 +218,11 @@ process Remove_PCR_Duplicates {
     -o ${base}_R1_fu.fastq \
     $paired_output \
 
-    deduped_reads_1=$(( $(gunzip -c ${base}_R1_fu.fastq | wc -l) / 4 ))
-    deduped_reads_2=$(( $(gunzip -c $paired_output | wc -l) / 4 ))
+    deduped_reads_1="\$(\$(gunzip -c ${base}_R1_fu.fastq | wc -l) / 4 )"
+    deduped_reads_2="\$(\$(gunzip -c $paired_output | wc -l) / 4 )"
 
-    total_deduped=$(( deduped_reads_1 + deduped_reads_2 ))
-    summary="${existingSummary}, deduped: $total_deduped"
+    total_deduped="\$( $\deduped_reads_1 + $\deduped_reads_2 )"
+    ${existingSummary}="${existingSummary}, deduped: \$total_deduped"
 
     """
 }
@@ -266,9 +268,9 @@ process Bowtie2Alignment {
 
     samtools view -b ${base}-align.sam | samtools sort > ${base}.bam
 
-    mapped_reads=\$(samtools view -F 0x04 -c ${base}.bam)
+    mapped_reads="\$(samtools view -F 0x04 -c ${base}.bam)"
 
-    summary="${existingSummary},\$mapped_reads"
+    summary="${existingSummary}, \$mapped_reads"
     """
 }
 
@@ -332,9 +334,7 @@ process Host_Read_Removal {
     mv ${base}_host_removed.1 ${base}_host_removed_1.fastq
     mv ${base}_host_removed.2 ${base}_host_removed_2.fastq
 
-
-
-    summary=${existingSummary}
+    summary="${existingSummary}, host-read"
     
     """
 }
