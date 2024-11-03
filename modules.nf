@@ -173,7 +173,7 @@ process Trimming {
 
     total_trimmed="\$((\$trimmed_reads_1 + \$trimmed_reads_2))"
 
-    summary="\$total_trimmed"
+    summary="${base}, \$total_raw, \$total_trimmed"
     
 
     """
@@ -223,7 +223,7 @@ process Remove_PCR_Duplicates {
     deduped_reads_2=\$((\$(wc -l < ${base}_R2_fu.fastq) /4 ))
 
     total_deduped=\$(( \$deduped_reads_1 + \$deduped_reads_2 ))
-    summary="${existingSummary}, deduped: \$total_deduped"
+    summary="${existingSummary}, \$total_deduped"
 
     """
 }
@@ -333,7 +333,12 @@ process Host_Read_Removal {
     mv ${base}_host_removed.1 ${base}_host_removed_1.fastq
     mv ${base}_host_removed.2 ${base}_host_removed_2.fastq
 
-    summary="${existingSummary}, host-read"
+    nonHost_reads_1=\$((\$(wc -l < ${base}_host_removed_1.fastq)/4))
+    nonHost_reads_2=\$((\$(wc -l < ${base}_host_removed_2.fastq)/4))
+
+    total_nonHost=\$((\$nonHost_reads_1 + \$nonHost_reads_2))
+
+    summary="${existingSummary}, \$total_nonHost"
     
     """
 }
