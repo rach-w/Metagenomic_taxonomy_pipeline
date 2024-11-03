@@ -138,6 +138,7 @@ process Trimming {
     tuple val(base), path("*_f.fastq")
     env 'summary' 
 
+    publishDir "${outDir}/trimming", mode: "copy"
     // TODO: parameterize adapter sequences
     script:
 
@@ -167,12 +168,12 @@ process Trimming {
     $initial_fastq 
     --info-file trim_summary.tsv
     
-    trimmed_reads_1="\$(\$(cat ${base}_R1_f.trimmed.fastq | wc -l)/4)"
-    trimmed_reads_2="\$(\$(cat ${base}_R2_f.fastq | wc -l)/4)"
+    trimmed_reads_1=\$((\$(wc -l < ${base}_R1_f.fastq)/4))
+    trimmed_reads_2=\$((\$(wc -l < ${base}_R2_f.fastq)/4))
 
-    total_trimmed="\$(\$trimmed_reads_1 + \$trimmed_reads_2)"
+    total_trimmed="\$((\$trimmed_reads_1 + \$trimmed_reads_2))"
 
-    summary="\$total_trimmmed"
+    summary="\$total_trimmed"
     
 
     """
@@ -218,11 +219,11 @@ process Remove_PCR_Duplicates {
     -o ${base}_R1_fu.fastq \
     $paired_output \
 
-    deduped_reads_1="\$(\$(gunzip -c ${base}_R1_fu.fastq | wc -l) / 4 )"
-    deduped_reads_2="\$(\$(gunzip -c $paired_output | wc -l) / 4 )"
+    deduped_reads_1=\$((\$(wc -l < ${base}_R1_fu.fastq ) /4 ))
+    deduped_reads_2=\$((\$(wc -l < ${base}_R2_fu.fastq) /4 ))
 
-    total_deduped="\$( $\deduped_reads_1 + $\deduped_reads_2 )"
-    ${existingSummary}="${existingSummary}, deduped: \$total_deduped"
+    total_deduped=\$(( \$deduped_reads_1 + \$deduped_reads_2 ))
+    summary="${existingSummary}, deduped: $total_deduped"
 
     """
 }
@@ -308,8 +309,6 @@ process Host_Read_Removal {
 
     The unaligned read files are then renamed to give them the typical paired end
     read name scheme.
-
-    The reads are gzipped to preserve space.
 
     Finally, the number of forward and reverse reads are grabbed and used to calculate
     the total number of reads post host removal. This value is added to the summary string.
