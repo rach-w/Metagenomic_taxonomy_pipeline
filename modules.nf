@@ -223,7 +223,7 @@ process Remove_PCR_Duplicates {
     deduped_reads_2=\$((\$(wc -l < ${base}_R2_fu.fastq) /4 ))
 
     total_deduped=\$(( \$deduped_reads_1 + \$deduped_reads_2 ))
-    summary="${existingSummary}, deduped: $total_deduped"
+    summary="${existingSummary}, deduped: \$total_deduped"
 
     """
 }
