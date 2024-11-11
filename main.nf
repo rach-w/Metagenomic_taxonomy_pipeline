@@ -6,9 +6,8 @@ def helpMessage() {
     log.info"""
 Metagenomic Taxonomy Pipeline:
     
-Takes an input of paired-end fastq files from illumina
-sequencers, processes the reads, removes host contamination,
-and performs a de novo assembly.
+Takes an input of fastq files (zipped or unzipped), performs a de novo assembly and identifies species via blastx and blastn,
+producing a heatmap of viruses or other microorganisms in the host sample
 
 USAGE: nextflow run main.nf [options] --input INPUT_DIR --output OUTPUT_DIR
 
@@ -147,6 +146,8 @@ include { Blastx_Remaining_Contigs} from './modules.nf'
 include { Split_Merged_Blastx_Results} from './modules.nf'
 include { Tally_Blastx_Results} from './modules.nf'
 include { Distribute_Blastx_Results} from './modules.nf'
+include { Virus_Mapping_Matrix } from './modules.nf'
+include { Create_Heatmap } from './modules.nf'
 adapters = file("${baseDir}/adapters.fa")
 
 // Checks the input parameter
@@ -171,14 +172,14 @@ println "Input Directory: ${inDir}"
 
 if(params.single_read != false){
     //pull file 
-    inputFiles_ch= Channel.fromPath("${inDir}/*.fastq*")
+    inputFiles_ch= Channel.fromPath("${inDir}/*.f*q*")
     //creates tuple with base file name & file
     .map{ it -> [it[0], it[1][0]]}
 }else{
 
     // Pull from pairs of files (illumina fastq files denoted by having R1 or R2 in
-    // the file name).
-    inputFiles_ch = Channel.fromFilePairs("${inDir}/*_R{1,2}*.fastq*")
+    // the file name)
+    inputFiles_ch = Channel.fromFilePairs("${inDir}/*_*{1,2}*.f*q*")
     // The .fromFilePairs() function spits out a list where the first 
     // item is the base file name, and the second is a list of the files.
     // This command creates a tuple with the base file name and two files.
@@ -445,7 +446,15 @@ workflow {
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
-        
+        //combine all tally files to one channel
+        Tally_Blastx_Results.out[0]
+            .combine(Tally_Blastn_Results.out[0])
+            .set{all_tally_ch}
+        //create mapping matrix for taxas
+        Virus_Mapping_Matrix(all_tally_ch, outDir)
+        //generate heatmap from mapping matrix
+        Create_Heatmap(Virus_Mapping_Matrix.out[0])
+    
     }
     // If the user supplied an existing bowtie2 index, use that for alignment.
     else if (params.host_bt2_index) {
@@ -488,7 +497,12 @@ workflow {
             Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
             Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
             Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
-            
+            Tally_Blastx_Results.out[0]
+            .combine(Tally_Blastn_Results.out[0])
+            .set{all_tally_ch}
+            Virus_Mapping_Matrix(all_tally_ch, outDir)
+            Create_Heatmap(Virus_Mapping_Matrix.out[0])
+    
     }
     else {    
         // Perform de novo assembly using spades.
@@ -520,7 +534,7 @@ workflow {
                 .collectFile(name:'merged_contigs.fasta')
                 .set{merged_blastx_ch}
                 
-            //use blastx/diamond to search nr database for contigs that didn't match previously
+        //use blastx/diamond to search nr database for contigs that didn't match previously
             
         Blastx_Remaining_Contigs(merged_blastx_ch, diamond_database, checked_blast_tax, params.threads)
         //combine with previous inppput
@@ -528,10 +542,15 @@ workflow {
             .combine(Process_Blastn_Output.out[0])     
             .set{merged_blastx_with_input_ch} 
         //split back into seperate files 
-        Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)Split_Merged_Blastx_Results( Process_Blastn_Output.out[0], Blastx_Remaining_Contigs.out[0], outDir)
+        Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
-        
+        //combine all tallies to create mapping matrix
+        Tally_Blastx_Results.out[0]
+            .combine(Tally_Blastn_Results.out[0])
+            .set{all_tally_ch}
+        Virus_Mapping_Matrix(all_tally_ch, outDir)
+        Create_Heatmap(Virus_Mapping_Matrix.out[0])
     }
     
     

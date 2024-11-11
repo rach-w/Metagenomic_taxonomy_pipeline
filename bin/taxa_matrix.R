@@ -1,22 +1,32 @@
 #!/usr/bin/env Rscript
 
 # Load necessary libraries
-library(optparse)
+library(argparse)
+
+# Create an ArgumentParser object
+parser <- ArgumentParser(description = "Process input tally files")
 
 # Set up command line options
-option_list <- list(
-  make_option(c("-r", "--rank"),type = "logical", default = FALSE, help = "Input tally files contain an extra rank column"),
-  make_option(c("-t", "--taxids_file"), type = "character", default = NULL, help = "Limit output to the taxids listed in this file"),
-  make_option(c("-c", "--tally_cutoff"), type = "numeric", default = 0, help = "Only output a read count value if value is > this cutoff"),
-  make_option(c("-v", "--virus_only"), type= "logical", default = FALSE, help = "Only include virus taxids in matrix"),
-  make_option(c("-p", "--no_phage"), type = "logical", default = FALSE, help = "Exclude phage taxids"),
-  make_option(c("-i", "--input_tally"), type = "character", help = "input tally matrices"),
-  make_option(c("-e". "--exclude_family"), type = "character", default = NULL, help = "Exclude a family of taxids from output")
-) 
+parser$add_argument("-r", "--rank", action = "store_true", default = FALSE,
+                    help = "Input tally files contain an extra rank column")
+parser$add_argument("-t", "--taxids_file", type = "character", default = NULL,
+                    help = "Limit output to the taxids listed in this file")
+parser$add_argument("-c", "--tally_cutoff", type = "numeric", default = 0,
+                    help = "Only output a read count value if value is > this cutoff")
+parser$add_argument("-v", "--virus_only", action = "store_true", default = FALSE,
+                    help = "Only include virus taxids in matrix")
+parser$add_argument("-p", "--no_phage", action = "store_true", default = FALSE,
+                    help = "Exclude phage taxids")
+parser$add_argument("-e", "--exclude_family", type = "character", default = NULL,
+                    help = "Exclude a family of taxids from output")
+parser$add_argument("input_tally", nargs = "+", type = "character", 
+                    help = "Space-separated list of input tally matrices")
+parser$add_argument("-o", "--output_file", type = "character", default="taxa_matrix.tsv", 
+                    help="Name of output file to output to")
 
-parser <- OptionParser(option_list = option_list)
-args <- parse_args(parser)
 
+# Parse the arguments
+args <- parser$parse_args()
 
 
 # Read taxids file if provided
@@ -41,11 +51,13 @@ output <- data.frame(
                         Tally = numeric()
                           )
 
-# Process each tally file
-tally_files <- unlist(strsplit(args$input_tally, ","))
-for (tally_file in tally_files) {
+for (tally_file in args$input_tally) {
 
-  blastn <- grepl("bn_nt", tally_file, fixed = TRUE) 
+  if(grepl("bn_nt", tally_file, fixed = TRUE) ){
+    blastn <- "blue"
+  } else{
+    blastn <- "red"
+  }
   # Extract barcode from filename
   barcode <- sub("\\..*$", "", tally_file)
   if (barcode == tally_file) {
@@ -117,13 +129,13 @@ for (tally_file in tally_files) {
             Common_Name = common_name,
             Kingdom = kingdom,
             Normalized_tally = normalized_tally,
-            Blastn = blastn
+            Blastn_color = blastn
             ))
     
   }
 }
 
-output_file <- write.table(output, file = "taxa_matrix.tsv", sep= "\t", row.names=FALSE, quote = FALSE)
+output_file <- write.table(output, file = args$output_file, sep= "\t", row.names=FALSE, quote = FALSE)
 
 
 

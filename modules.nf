@@ -58,6 +58,7 @@ process Setup {
     echo "${summaryHeader}" > stats-summary.csv
     """
 }
+
 // Builds a bowtie2 index for a provided reference file
 process Index_Host_Reference {
     input:
@@ -366,7 +367,7 @@ process Spades_Assembly {
 
         tuple val(base), path(input_fastq)
     
-    publishDir "${outDir}", mode: 'copy'
+    publishDir "${outDir}/assembled_contigs", mode: 'copy'
 
     script:
     /*
@@ -760,7 +761,7 @@ process Tally_Blastn_Results {
 
   output:
   path("*bn_nt.tally") 
-  publishDir "${outDir}/tally_results", mode:'link'
+  publishDir "${outDir}/blastn_tally", mode:'link'
   script:
 
   // TODO: move tally_blast_hits logic into an R script?
@@ -983,7 +984,7 @@ process Virus_Mapping_Matrix {
 
   script:
   """
-  Rscript ${params.scripts_bindir}/taxa_matrix.R -v TRUE -i ${normalized_tally_files} > virus_matrix.tsv
+  Rscript ${params.scripts_bindir}/taxa_matrix.R ${normalized_tally_files}
   """
 }
 

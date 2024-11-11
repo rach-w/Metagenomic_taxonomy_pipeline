@@ -18,13 +18,14 @@ taxa_matrix = opt$input
 color = opt$color
 #read tally matrix file
 
-tally_vals <- read.table(taxa_matrix, header = TRUE, stringsAsFactors = FALSE, sep = "\t") 
+tally_vals <- read.table(taxa_matrix, header = TRUE, stringsAsFactors = FALSE, sep = "\t")
 
 #generate heatmao
 #tidy_heatmap(tally_vals, rows = TAXID, columns = Barcode, values = Normalized_tally , filename = "heatmap.pdf")  + scale_fill_viridis()                    
 ggplot(tally_vals, aes(x = Scientific_Name, Barcode)) +
   geom_tile(aes(fill = Normalized_tally)) +
   scale_fill_viridis() +
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90, color=tally_vals$Blastn_color)) 
+
 
 
