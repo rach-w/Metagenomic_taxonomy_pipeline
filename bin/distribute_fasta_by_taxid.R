@@ -85,9 +85,14 @@ for (i in 1:nrow(blast_results)) {
   query <- row$query_id
   acc <- row$subject_id
   bit_score <- row$bit_score
-  taxid <- row$taxid
+  
   scientific_name <- row$scientific_name
   super_kingdom <- row$super_kingdom
+  if(is.na(as.numeric(row$taxid))){
+      taxid <- row$taxid
+  }else{
+      taxid <- accessionToTaxa(row$taxid, ncbi_tax_db)    
+  }
   
   if (!is.null(queries[[query]])) {
     if (bit_score > queries[[query]]$best_bitscore) {
@@ -121,8 +126,7 @@ for (i in 1:length(fasta_sequences)) {
         if (is.na(kingdom)) next
         if (opt$virus_only != FALSE && kingdom != "Viruses") next
         scientific_name <- taxonomy_info[1,7]
-        scientific_name <- gsub(" ", "_", scientific_name, fixed = TRUE)
-        scientific_name <- gsub("/", "_", scientific_name, fixed = TRUE)
+        scientific_name <- gsub(" |/|(|)|[|]|", "_", scientific_name, fixed = TRUE)
         filename <- paste0(fasta_file,"_",taxid,"_",  scientific_name, ".fa" )
         filename <- gsub("'", "", filename, fixed = TRUE)
         writeXStringSet(fasta_sequences[i], filepath = filename, append = TRUE)

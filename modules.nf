@@ -894,7 +894,7 @@ process Distribute_Blastx_Results {
   script:
   """
   # pull out virus-derived reads - this will create a file for each viral taxon
-  Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db}  -f ${contigs} -b ${blastx_out} -d TRUE -v TRUE
+  Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db}  -f ${contigs} -b ${blastx_out} -d TRUE 
   """
 }
 /*
@@ -993,6 +993,7 @@ process Create_Heatmap{
 
   input:
   path(mapping_matrix)
+  val(outDir)
 
   output:
   path("*.pdf")
