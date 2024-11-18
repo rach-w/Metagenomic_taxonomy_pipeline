@@ -33,7 +33,8 @@ option_list = list(
   make_option(c("-w", "--query_weight_file"), type="character", help="File with query weights"),
   make_option(c("-c", "--out_tally_cutoff"), type="numeric", default=0, help="Tally cutoff for output (default 0)"),
   make_option(c("-n", "--ncbi_tax_db"), type="character", help="Path to sqlite database file with info from the NCBI Taxonomy database"),
-  make_option(c("-f", "--filter"), type="character", help="Kingdom to filter for")
+  make_option(c("-f", "--filter"), type="character", help="Kingdom to filter for"),
+  make_option(c("-u", "--unique_reads"), type = "numeric", help="Unique reads from sample")
 )
 
 # Parse the arguments
@@ -47,6 +48,7 @@ query_weight_file = opt$query_weight_file
 ncbi_tax_db = opt$ncbi_tax_db
 tally_cutoff = opt$out_tally_cutoff
 filter = opt$filter
+unique_reads = opt$unique_reads
 
 
 # Function to read query weight file (if provided)
@@ -244,6 +246,7 @@ output_results <- function(taxid_tally, output_suffix) {
                           Common_Name = character(),
                           Kingdom = character(),
                           Tally = numeric(),
+                          Normalized_tally = numeric(),
                           Median_evalue = numeric(),
                           Min_evalue = numeric(),
                           Max_evalue = numeric(),
@@ -256,6 +259,9 @@ output_results <- function(taxid_tally, output_suffix) {
     taxonomy_info <- getTaxonomy(taxid, ncbi_tax_db )
     scientific_name <- ifelse(is.null(taxonomy_info[1,7]), NA, taxonomy_info[1,7])
     if(is.na(scientific_name)) next
+    scientific_name <- gsub("'", "", scientific_name, fixed = TRUE)
+    scientific_name <- gsub(" ", "_", scientific_name, fixed = TRUE)
+    scientific_name <- gsub("#", "_", scientific_name, fixed = TRUE)
     common_info <- getCommon(taxid, ncbi_tax_db, c("genbank common name", "common name"))
     
     # Handle cases where common_info might be empty
@@ -265,6 +271,8 @@ output_results <- function(taxid_tally, output_suffix) {
       common_name <- NA
     }
     if (is.na(common_name)) common_name <- "Unknown"
+    common_name <- gsub(" ", "_", common_name, fixed=TRUE)
+    common_name <- gsub("'", "", common_name, fixed = TRUE)
     
     kingdom <- ifelse(is.null(taxonomy_info[1,1]), NA, taxonomy_info[1,1])
     if (!is.null(filter)){
@@ -275,6 +283,7 @@ output_results <- function(taxid_tally, output_suffix) {
     
     # Check if any of these are NA, and if so, handle accordingly
     tally <- length(taxid_tally[[taxid]]$queries)
+    normalized_tally <- round(tally/unique_reads * 1000000)
     median_evalue <- taxid_tally[[taxid]]$median_evalue
     min_evalue <- taxid_tally[[taxid]]$min_evalue
     max_evalue <- taxid_tally[[taxid]]$max_evalue
@@ -292,6 +301,7 @@ output_results <- function(taxid_tally, output_suffix) {
       Common_Name = common_name,
       Kingdom = kingdom,
       Tally = tally,
+      Normalized_tally = normalized_tally,
       Median_evalue = median_evalue,
       Min_evalue = min_evalue,
       Max_evalue = max_evalue,

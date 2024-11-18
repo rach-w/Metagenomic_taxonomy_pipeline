@@ -69,21 +69,23 @@ for (tally_file in args$input_tally) {
   }
 
   # Read tally file
+  print(barcode)
   tally_data <- read.table(tally_file, header = TRUE, stringsAsFactors = FALSE, sep = "\t")
+
 
   for (i in 1:nrow(tally_data)) {
     if (args$rank) {
       rank <- tally_data[i, 1]
       taxid <- tally_data[i, 2]
-      scientific_name <- tally_data[i, 4]
-      common_name <- tally_data[i, 5]
-      kingdom <- tally_data[i, 6]
-      tally <- tally_data[i, 7]
-      normalized_tally <- tally_data[i, 8]
-      median_evalue<- tally_data[i,9]
-      min_evalue <- tally_data[i,10]
-      max_evalue <- tally_data[i,11]
-      median_pct_id <- tally_data[i,12]
+      scientific_name <- tally_data[i, 3]
+      common_name <- tally_data[i, 4]
+      kingdom <- tally_data[i, 5]
+      tally <- tally_data[i, 6]
+      normalized_tally <- tally_data[i, 7]
+      median_evalue<- tally_data[i,8]
+      min_evalue <- tally_data[i,9]
+      max_evalue <- tally_data[i,10]
+      median_pct_id <- tally_data[i,11]
     } else {
       taxid <- tally_data[i, 1]
       scientific_name <- tally_data[i, 2]

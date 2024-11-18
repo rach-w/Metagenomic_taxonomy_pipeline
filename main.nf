@@ -448,7 +448,7 @@ workflow {
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
         //combine all tally files to one channel
         Tally_Blastx_Results.out[0]
-            .combine(Tally_Blastn_Results.out[0])
+            .mix(Tally_Blastn_Results.out[0])
             .collect()
             .set{all_tally_ch}
         //create mapping matrix for taxas
@@ -499,7 +499,7 @@ workflow {
             Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
             Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
             Tally_Blastx_Results.out[0]
-            .combine(Tally_Blastn_Results.out[0])
+            .mix(Tally_Blastn_Results.out[0])
             .collect()
             .set{all_tally_ch}
             Virus_Mapping_Matrix(all_tally_ch, outDir)
@@ -549,7 +549,7 @@ workflow {
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
         //combine all tallies to create mapping matrix
         Tally_Blastx_Results.out[0]
-            .combine(Tally_Blastn_Results.out[0])
+            .mix(Tally_Blastn_Results.out[0])
             .collect()
             .set{all_tally_ch}
         

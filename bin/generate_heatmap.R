@@ -5,6 +5,7 @@ library(viridis)
 library(tidyheatmaps)
 library(optparse)
 library(ggplot2)
+library(stringr)
 
 
 option_list = list(
@@ -24,8 +25,10 @@ tally_vals <- read.table(taxa_matrix, header = TRUE, stringsAsFactors = FALSE, s
 #tidy_heatmap(tally_vals, rows = TAXID, columns = Barcode, values = Normalized_tally , filename = "heatmap.pdf")  + scale_fill_viridis()                    
 ggplot(tally_vals, aes(x = Scientific_Name, Barcode)) +
   geom_tile(aes(fill = Normalized_tally)) +
+  scale_y_discrete(labels = function(x) str_wrap(x, width = 10)) +
   scale_fill_viridis() +
-  theme(axis.text.x = element_text(angle = 90, color=tally_vals$Blastn_color)) 
+  theme(axis.text.x = element_text(angle = 70, color=tally_vals$Blastn_color, size=5)) +
+  theme(axis.text.y = element_text(angle = 70, size=5))
 
 
 

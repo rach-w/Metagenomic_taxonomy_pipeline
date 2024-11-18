@@ -893,8 +893,9 @@ process Distribute_Blastx_Results {
 
   script:
   """
-  # pull out virus-derived reads - this will create a file for each viral taxon
-  Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db}  -f ${contigs} -b ${blastx_out} -d TRUE 
+  # pull out desired reads - can change for virus or other kingdom
+
+  Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db}  -f ${contigs} -b ${blastx_out} -d TRUE -v TRUE
   """
 }
 /*
