@@ -7,15 +7,19 @@ def helpMessage() {
 Metagenomic Taxonomy Pipeline:
     
 Takes an input of fastq files (zipped or unzipped), performs a de novo assembly and identifies species via blastx and blastn,
-producing a heatmap of viruses or other microorganisms in the host sample
+producing tally files for these runs, extracted fasta files and a heatmap of viruses or other microorganisms in the host sample
 
-USAGE: nextflow run main.nf [options] --input INPUT_DIR --output OUTPUT_DIR
+USAGE: nextflow run main.nf [options] --input INPUT_DIR --output OUTPUT_DIR 
 
 OPTIONS:
 
 --input INPUT_DIR - [Required] A directory containing paired-end fastq files
 
 --output OUTPUT_DIR - [Required] A directory to place output files (If not existing, pipeline will create)
+
+--local_blast_nt BLAST_DATABASE_DR - [Required] A directory containing the blast nt database
+
+--local_diamond DIAMOND_DIR - [Required] A directory containing a local diamond database
 
 OPTIONAL:
 
@@ -30,6 +34,10 @@ OPTIONAL:
     --minLen INT - The minimum length of a read to keep post trimming [Default = 75bp]
 
     --minTrimQual INT - The average basecall quality threshold below which to trim a read. During trimming, trimmomatic performs a sliding window checking the average base quality, and removing the rest of the read if it drops below this treshold. [Default = 20]
+    
+    --ncbi_tax_dir - Directory containing ncbi taxonomy database to set up Taxonomizr 
+
+    --blast_tax_dir - Directory containing ncbi taxonomy database locally to make blast taxonomically aware
     """
 }
 
@@ -330,6 +338,7 @@ if (params.blast_tax_dir) {
                          .map { path -> [ path , false ] }  
 }
 //check for filter option on tally step
+//TODO: currently not working; maybe try and fix
 /*
 if (params.tally_filter_kingdom) {
    filter = Channel.of( params.tally_filter_kingdom )
@@ -435,16 +444,19 @@ workflow {
                 .collectFile(name:'merged_contigs.fasta')
                 .set{merged_blastx_ch}
                 
-            //use blastx/diamond to search nr database for contigs that didn't match previously
+        //use blastx/diamond to search nr database for contigs that didn't match previously
            
         Blastx_Remaining_Contigs(merged_blastx_ch, diamond_database, checked_blast_tax, params.threads)
 
+        //combine blastx output with rest of info from blastn
         Blastx_Remaining_Contigs.out[0]
             .combine(Process_Blastn_Output.out[0])     
             .set{merged_blastx_with_input_ch}
-            
+        //split back into respective files    
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
+        //tally results from blastx
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
+        //distribute into fasta files from results
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
         //combine all tally files to one channel
         Tally_Blastx_Results.out[0]
@@ -492,17 +504,24 @@ workflow {
             //use blastx/diamond to search nr database for contigs that didn't match previously
             
             Blastx_Remaining_Contigs(merged_blastx_ch, diamond_database, checked_blast_tax, params.threads)
+            //combine blastx output with rest of info from blastn
             Blastx_Remaining_Contigs.out[0]
                 .combine(Process_Blastn_Output.out[0])     
-                .set{merged_blastx_with_input_ch} 
+                .set{merged_blastx_with_input_ch}
+            //split back into respective files    
             Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
+            //tally results from blastx
             Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
+            //distribute into fasta files from results
             Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
+            //combine all tally files to one channel
             Tally_Blastx_Results.out[0]
-            .mix(Tally_Blastn_Results.out[0])
-            .collect()
-            .set{all_tally_ch}
+                .mix(Tally_Blastn_Results.out[0])
+                .collect()
+                .set{all_tally_ch}
+            //create mapping matrix for taxas
             Virus_Mapping_Matrix(all_tally_ch, outDir)
+            //generate heatmap from mapping matrix
             Create_Heatmap(Virus_Mapping_Matrix.out[0], outDir)
     
     }
@@ -539,21 +558,24 @@ workflow {
         //use blastx/diamond to search nr database for contigs that didn't match previously
             
         Blastx_Remaining_Contigs(merged_blastx_ch, diamond_database, checked_blast_tax, params.threads)
-        //combine with previous inppput
+        //combine blastx output with rest of info from blastn
         Blastx_Remaining_Contigs.out[0]
             .combine(Process_Blastn_Output.out[0])     
-            .set{merged_blastx_with_input_ch} 
-        //split back into seperate files 
+            .set{merged_blastx_with_input_ch}
+        //split back into respective files    
         Split_Merged_Blastx_Results(merged_blastx_with_input_ch, outDir)
+        //tally results from blastx
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
+        //distribute into fasta files from results
         Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
-        //combine all tallies to create mapping matrix
+        //combine all tally files to one channel
         Tally_Blastx_Results.out[0]
             .mix(Tally_Blastn_Results.out[0])
             .collect()
             .set{all_tally_ch}
-        
+        //create mapping matrix for taxas
         Virus_Mapping_Matrix(all_tally_ch, outDir)
+        //generate heatmap from mapping matrix
         Create_Heatmap(Virus_Mapping_Matrix.out[0], outDir)
     }
     
