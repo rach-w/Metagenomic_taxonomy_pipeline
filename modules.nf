@@ -789,7 +789,7 @@ process Distribute_Blastn_Results {
     script:
     """
     # pull out virus-derived reads - this will create a file for each viral taxon
-    Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db} -f ${contigs} -b ${blast_out} 
+    Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db} -f ${contigs} -b ${blast_out} -v TRUE
     """
 }
 
@@ -835,6 +835,7 @@ process Split_Merged_Blastx_Results {
   tuple val(base), path("${base}_contigs_nn.fasta") 
 
   publishDir "${outDir}/blastx", mode:'copy'  
+
   script:
   def blastx_columns = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore staxids sscinames sskingdoms"
                                                                                 

@@ -275,7 +275,7 @@ output_results <- function(taxid_tally, output_suffix) {
     common_name <- gsub("'", "", common_name, fixed = TRUE)
     
     kingdom <- ifelse(is.null(taxonomy_info[1,1]), NA, taxonomy_info[1,1])
-    if (!is.null(filter)){
+    if (!is.null(filter) && !is.na(kingdom)){
       if (kingdom != filter){
         next
       }

@@ -15,8 +15,9 @@
 # (2) parse fasta file, for each record with a hit, output it to a new file for the
 #     taxid of the best hit
 #
-# Mark Stenglein August 13, 2011
+# Original perl script created by Mark Stenglein August 13, 2011
 # Updated: 4/17/2014
+# Converted to R by Rachel Wu 7/20/2024
 
 library(optparse)
 library(RSQLite)
@@ -118,15 +119,16 @@ fasta_sequences <- readDNAStringSet(fasta_file, format="fasta")
 for (i in 1:length(fasta_sequences)) {
   query <- names(fasta_sequences)[i]
   if (!is.null(queries[[query]])) {
+    kingdom <- queries[[query]]$super_kingdom
+    scientific_name <- queries[[query]]$scientific_name
+    print(paste("Kingdom:", kingdom))
     for (taxid in queries[[query]]$best_taxids) {
       if ((output_taxid_subset && taxid %in% taxids_to_filter) || !output_taxid_subset) {
         if (opt$min_tally != 0 && taxid_tally[taxid] < opt$min_tally) next
-        taxonomy_info <- getTaxonomy(taxid, ncbi_tax_db)
-        kingdom <- taxonomy_info[1,1]
-        if (is.na(kingdom)) next
+        
+        if (is.null(kingdom) || is.na(kingdom)) next
         if (opt$virus_only != FALSE && kingdom != "Viruses") next
-        scientific_name <- taxonomy_info[1,7]
-
+        
         #remove potential characters that would break file name
         #TODO: get this in a nicer written way
         scientific_name <- gsub(" ", "_", scientific_name, fixed=TRUE)
