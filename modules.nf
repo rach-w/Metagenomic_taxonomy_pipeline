@@ -708,7 +708,7 @@ process Blastn_Contigs{
 
   # have to set this environmental variable so blast can be taxonomically aware 
   # poorly documented feature of command line blast 
-  export BLASTDB="${blast_tax_dir}"
+  export BLASTDB="$blast_tax_dir"
 
   # run the megablast 
   blastn -num_threads ${threads} -db ${local_nt_database} -task megablast -evalue ${max_nt_evalue} -query ${contigs} -outfmt "6 $blastn_columns" -out ${contigs}.bn_nt
@@ -809,7 +809,7 @@ process Blastx_Remaining_Contigs{
   path("${merged_remaining_contigs}.bx_nr") 
 
   script:
-  def blastx_columns = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore staxids sscinames sskingdoms"
+  def blastx_columns = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore staxid ssciname sskingdom"
                                                                                 
   """                                                                           
   # run diamond to do a blastx-style search
