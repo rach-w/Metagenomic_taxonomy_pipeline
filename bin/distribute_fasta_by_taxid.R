@@ -126,7 +126,7 @@ for (i in 1:length(fasta_sequences)) {
       if ((output_taxid_subset && taxid %in% taxids_to_filter) || !output_taxid_subset) {
         if (opt$min_tally != 0 && taxid_tally[taxid] < opt$min_tally) next
         
-        if (is.null(kingdom) || is.na(kingdom)|| kingdom="") {
+        if (is.null(kingdom) || is.na(kingdom)) {
             taxonomy_info <- getTaxonomy(taxid, ncbi_tax_db )
             scientific_name <- ifelse(is.null(taxonomy_info[1,7]), NA, taxonomy_info[1,7])
             kingdom <- ifelse(is.null(taxonomy_info[1,1]), NA, taxonomy_info[1,1])
