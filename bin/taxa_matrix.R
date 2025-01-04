@@ -59,7 +59,7 @@ for (tally_file in args$input_tally) {
     blastn <- "red"
   }
   # Extract barcode from filename
-  barcode <- sub("\\..*$", "", tally_file)
+  barcode <- sub("[_-].*$", "", tally_file)
   if (barcode == tally_file) {
     barcode <- tally_file
   }
@@ -106,9 +106,12 @@ for (tally_file in args$input_tally) {
     }
 
     # Filter based on options
-    if (args$virus_only && kingdom != "Viruses") {
+    if( !is.na(kingdom) && !is.null(kingdom)){
+      if (args$virus_only && kingdom != "Viruses") {
       next
+      }
     }
+    
     if (args$no_phage && grepl("phage", scientific_name, ignore.case = TRUE)) {
       next
     }

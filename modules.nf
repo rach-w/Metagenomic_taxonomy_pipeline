@@ -986,7 +986,7 @@ process Virus_Mapping_Matrix {
 
   script:
   """
-  Rscript ${params.scripts_bindir}/taxa_matrix.R ${normalized_tally_files}
+  Rscript ${params.scripts_bindir}/taxa_matrix.R ${normalized_tally_files} -v
   """
 }
 
