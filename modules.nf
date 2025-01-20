@@ -1003,7 +1003,7 @@ process Create_Heatmap{
 
   script:
   """
-  Rscript ${params.scripts_bindir}/generate_heatmap.R -i ${mapping_matrix}
+  Rscript ${params.scripts_bindir}/generate_heatmap.R -i ${mapping_matrix} 
   """
 }
 

@@ -34,7 +34,8 @@ option_list = list(
   make_option(c("-c", "--out_tally_cutoff"), type="numeric", default=0, help="Tally cutoff for output (default 0)"),
   make_option(c("-n", "--ncbi_tax_db"), type="character", help="Path to sqlite database file with info from the NCBI Taxonomy database"),
   make_option(c("-f", "--filter"), type="character", help="Kingdom to filter for"),
-  make_option(c("-u", "--unique_reads"), type = "numeric", help="Unique reads from sample")
+  make_option(c("-u", "--unique_reads"), type = "numeric", help="Unique reads from sample"),
+  make_option(c("-t", "--taxonomic_level"), type= "character", help="tally at different taxonomic level such as family")
 )
 
 # Parse the arguments
@@ -244,6 +245,7 @@ output_results <- function(taxid_tally, output_suffix) {
   output_df <- data.frame(TAXID = character(),
                           Scientific_Name = character(),
                           Common_Name = character(),
+                          Family = character(),
                           Kingdom = character(),
                           Tally = numeric(),
                           Normalized_tally = numeric(),
@@ -262,6 +264,12 @@ output_results <- function(taxid_tally, output_suffix) {
     scientific_name <- gsub("'", "", scientific_name, fixed = TRUE)
     scientific_name <- gsub(" ", "_", scientific_name, fixed = TRUE)
     scientific_name <- gsub("#", "_", scientific_name, fixed = TRUE)
+
+    family <- ifelse(is.null(taxonomy_info[1,5]), NA, taxonomy_info[1,5])
+    if(is.na(family))next
+    family <- gsub("'", "", family, fixed = TRUE)
+    family <- gsub(" ", "_", family, fixed = TRUE)
+    family <- gsub("#", "_", family, fixed = TRUE)
     common_info <- getCommon(taxid, ncbi_tax_db, c("genbank common name", "common name"))
     
     # Handle cases where common_info might be empty
@@ -299,6 +307,7 @@ output_results <- function(taxid_tally, output_suffix) {
       TAXID = taxid,
       Scientific_Name = scientific_name,
       Common_Name = common_name,
+      Family = family,
       Kingdom = kingdom,
       Tally = tally,
       Normalized_tally = normalized_tally,

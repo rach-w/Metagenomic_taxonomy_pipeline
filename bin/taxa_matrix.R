@@ -23,9 +23,11 @@ parser$add_argument("input_tally", nargs = "+", type = "character",
                     help = "Space-separated list of input tally matrices")
 parser$add_argument("-o", "--output_file", type = "character", default="taxa_matrix.tsv", 
                     help="Name of output file to output to")
+parser$add_argument("-f", "--family_level", action = "store_true", default = FALSE,
+                    help = "Only display family level taxonomic information")
 
 
-# Parse the arguments
+# Parse the arguments 
 args <- parser$parse_args()
 
 
@@ -47,6 +49,7 @@ output <- data.frame(
                         TAXID = character(),
                         Scientific_Name = character(),
                         Common_Name = character(),
+                        Family = character(),
                         Kingdom = character(),
                         Tally = numeric()
                           )
@@ -90,13 +93,14 @@ for (tally_file in args$input_tally) {
       taxid <- tally_data[i, 1]
       scientific_name <- tally_data[i, 2]
       common_name <- tally_data[i, 3]
-      kingdom <- tally_data[i, 4]
-      tally <- tally_data[i, 5]
-      normalized_tally <- tally_data[i,6]
-      median_evalue<- tally_data[i,7]
-      min_evalue <- tally_data[i,8]
-      max_evalue <- tally_data[i,9]
-      median_pct_id <- tally_data[i,10]
+      family <- tally_data[i, 4]
+      kingdom <- tally_data[i, 5]
+      tally <- tally_data[i, 6]
+      normalized_tally <- tally_data[i,7]
+      median_evalue<- tally_data[i,8]
+      min_evalue <- tally_data[i,9]
+      max_evalue <- tally_data[i,10]
+      median_pct_id <- tally_data[i,11]
     }
 
     if (nchar(taxid) == 0) {
@@ -132,6 +136,7 @@ for (tally_file in args$input_tally) {
             TAXID = taxid,
             Scientific_Name = scientific_name,
             Common_Name = common_name,
+            Family = family,
             Kingdom = kingdom,
             Normalized_tally = normalized_tally,
             Blastn_color = blastn
