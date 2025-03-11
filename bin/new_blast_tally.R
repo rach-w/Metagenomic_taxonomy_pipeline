@@ -25,6 +25,8 @@
 library(optparse)
 library(taxonomizr)
 library(taxize)
+library(parallel)
+
 # Command line options
 option_list = list(
   make_option(c("-e", "--max_eval"), type="numeric", default=Inf, help="Maximum e-value cutoff"),
@@ -35,6 +37,7 @@ option_list = list(
   make_option(c("-n", "--ncbi_tax_db"), type="character", help="Path to sqlite database file with info from the NCBI Taxonomy database"),
   make_option(c("-f", "--filter"), type="character", help="Kingdom to filter for"),
   make_option(c("-u", "--unique_reads"), type = "numeric", help="Unique reads from sample"),
+  make_option(c("-o", "--num_cores"), type = "numeric", help="Number of cores to use"),
   make_option(c("-t", "--taxonomic_level"), type= "character", help="tally at different taxonomic level such as family")
 )
 
@@ -51,6 +54,12 @@ tally_cutoff = opt$out_tally_cutoff
 filter = opt$filter
 unique_reads = opt$unique_reads
 
+# Get the number of cores from the environment variable
+num_cores <- detectCores() -1  # Default to 1 if not set
+
+# Print the number of cores being used (for debugging)
+print(paste("Using", num_cores, "cores"))
+
 
 # Function to read query weight file (if provided)
 read_query_weights <- function(file) {
@@ -58,6 +67,7 @@ read_query_weights <- function(file) {
   weights <- read.table(opt$query_weights, header=FALSE, sep="\t", col.names=c("query", "weight"))
   return(weights)
 }
+
 
 # Read BLAST output and process
 # Function to read and process each file
@@ -116,76 +126,128 @@ process_blast_file <- function(input_file) {
 
   }
   
-  # Iterate through queries and calculate tallies
-  for (query in names(queries)) {
-    hits <- queries[[query]]$best_hits
-    number_hits <- length(hits)
-    evalue_sum <- 0
-    pct_id_sum <- 0
-    hit_taxids <- list()
-    
-    for (hit in hits) {
-      fields <- strsplit(hit, "\t")[[1]]
-      gi <- fields[2]
-      taxid <- gi_taxid_map[[gi]]
-      
-      if (is.na(taxid)) {
-        warning(sprintf("Warning: TAXID undefined for accession: %s. Setting this taxid to root", gi))
-        taxid <- 1
-      }
-      
-      if (is.null(hit_taxids[[taxid]])) {
-        hit_taxids[[taxid]] <- 1
-      } else {
-        hit_taxids[[taxid]] <- hit_taxids[[taxid]] + 1
-      }
-      
-      evalue_sum <- evalue_sum + as.numeric(fields[11])
-      pct_id_sum <- pct_id_sum + as.numeric(fields[3])
-    }
-    
-    mean_evalue <- if (number_hits > 0) sprintf("%.1e", evalue_sum / number_hits) else NA
-    mean_pct_id <- if (number_hits > 0) pct_id_sum / number_hits else NA
-    
-    lca_taxid <- identify_lca(names(hit_taxids))
-    taxid_tally[[lca_taxid]]$lca <-lca_taxid
-    # Non-norm tally
-    if (is.null(taxid_tally[[lca_taxid]])) {
-      taxid_tally[[lca_taxid]] <- list(tally = 0, queries = list(), evalues = list(), pct_ids = list())
-    }
-    taxid_tally[[lca_taxid]]$tally <- taxid_tally[[lca_taxid]]$tally + query_weights[[query]]
-    taxid_tally[[lca_taxid]]$queries <- c(taxid_tally[[lca_taxid]]$queries, query)
-    taxid_tally[[lca_taxid]]$evalues <- c(taxid_tally[[lca_taxid]]$evalues, mean_evalue)
-    taxid_tally[[lca_taxid]]$pct_ids <- c(taxid_tally[[lca_taxid]]$pct_ids, mean_pct_id)
-  }
-  #calculate statistics for taxid_tally
-  #does this work with lca??
-  for (taxid in names(taxid_tally)) {
-    evalues <- as.numeric(taxid_tally[[taxid]]$evalues)
-    pct_ids <- as.numeric(taxid_tally[[taxid]]$pct_ids)
-    
-    if (length(evalues) > 0) {
-      taxid_tally[[taxid]]$median_evalue <- median(evalues, na.rm = TRUE)
-      taxid_tally[[taxid]]$min_evalue <- min(evalues, na.rm = TRUE)
-      taxid_tally[[taxid]]$max_evalue <- max(evalues, na.rm = TRUE)
-    } else {
-      taxid_tally[[taxid]]$median_evalue <- NA
-      taxid_tally[[taxid]]$min_evalue <- NA
-      taxid_tally[[taxid]]$max_evalue <- NA
-    }
-    
-    if (length(pct_ids) > 0) {
-      taxid_tally[[taxid]]$median_pct_id <- median(pct_ids, na.rm = TRUE)
-      taxid_tally[[taxid]]$min_pct_id <- min(pct_ids, na.rm = TRUE)
-      taxid_tally[[taxid]]$max_pct_id <- max(pct_ids, na.rm = TRUE)
-    } else {
-      taxid_tally[[taxid]]$median_pct_id <- NA
-      taxid_tally[[taxid]]$min_pct_id <- NA
-      taxid_tally[[taxid]]$max_pct_id <- NA
-    }
+ # Function to process each query in parallel
+process_query <- function(query, queries, gi_taxid_map, query_weights) {
+  hits <- queries[[query]]$best_hits
+  if (is.null(hits)) {
+    warning(sprintf("No hits found for query: %s\n", query))
+    return(NULL)
   }
   
-  return(taxid_tally)
+  hit_taxids <- list()
+  evalues <- numeric()
+  pct_ids <- numeric()
+  
+  for (hit in hits) {
+    fields <- strsplit(hit, "\t")[[1]]
+    gi <- fields[2]
+    taxid <- gi_taxid_map[[gi]]
+    
+    if (is.na(taxid)) {
+      warning(sprintf("Warning: TAXID undefined for accession: %s. Setting this taxid to root", gi))
+      taxid <- 1
+    }
+    
+    if (is.null(hit_taxids[[taxid]])) {
+      hit_taxids[[taxid]] <- 1
+    } else {
+      hit_taxids[[taxid]] <- hit_taxids[[taxid]] + 1
+    }
+    
+    evalues <- c(evalues, as.numeric(fields[11]))  # Collect e-values
+    pct_ids <- c(pct_ids, as.numeric(fields[3]))   # Collect percent identities
+  }
+  
+  # Calculate LCA for the query
+  lca_taxid <- identify_lca(names(hit_taxids))
+  if (is.null(lca_taxid)) {
+    warning(sprintf("Warning: LCA not found for query: %s\n", query))
+    return(NULL)
+  }
+  
+  # Calculate mean e-value and percent identity for the query
+  mean_evalue <- mean(evalues, na.rm = TRUE)
+  mean_pct_id <- mean(pct_ids, na.rm = TRUE)
+  
+  # Return results for this query
+  return(list(
+    lca_taxid = lca_taxid,
+    query = query,
+    tally = if (!is.null(query_weights) && query %in% query_weights$query) {
+      query_weights$weight[query_weights$query == query]
+    } else {
+      1
+    },
+    evalues = evalues,
+    pct_ids = pct_ids
+  ))
+}
+
+# Parallelize the processing of queries
+query_results <- mclapply(names(queries), function(query) {
+  tryCatch({
+    process_query(query, queries, gi_taxid_map, query_weights)
+  }, error = function(e) {
+    warning(sprintf("Error processing query %s: %s\n", query, e$message))
+    return(NULL)
+  })
+}, mc.cores = num_cores)
+
+# Filter out NULL results
+query_results <- Filter(Negate(is.null), query_results)
+
+# Aggregate results into taxid_tally
+taxid_tally <- list()
+for (result in query_results) {
+  lca_taxid <- result$lca_taxid
+  query <- result$query
+  tally <- result$tally
+  evalues <- result$evalues
+  pct_ids <- result$pct_ids
+  
+  if (is.null(taxid_tally[[lca_taxid]])) {
+    taxid_tally[[lca_taxid]] <- list(
+      tally = 0,
+      queries = list(),
+      evalues = numeric(),
+      pct_ids = numeric()
+    )
+  }
+  
+  taxid_tally[[lca_taxid]]$tally <- taxid_tally[[lca_taxid]]$tally + tally
+  taxid_tally[[lca_taxid]]$queries <- c(taxid_tally[[lca_taxid]]$queries, query)
+  taxid_tally[[lca_taxid]]$evalues <- c(taxid_tally[[lca_taxid]]$evalues, evalues)
+  taxid_tally[[lca_taxid]]$pct_ids <- c(taxid_tally[[lca_taxid]]$pct_ids, pct_ids)
+}
+
+# Calculate statistics for taxid_tally
+for (taxid in names(taxid_tally)) {
+  evalues <- as.numeric(taxid_tally[[taxid]]$evalues)
+  pct_ids <- as.numeric(taxid_tally[[taxid]]$pct_ids)
+  
+  if (length(evalues) > 0) {
+    taxid_tally[[taxid]]$median_evalue <- median(evalues, na.rm = TRUE)
+    taxid_tally[[taxid]]$min_evalue <- min(evalues, na.rm = TRUE)
+    taxid_tally[[taxid]]$max_evalue <- max(evalues, na.rm = TRUE)
+  } else {
+    taxid_tally[[taxid]]$median_evalue <- NA
+    taxid_tally[[taxid]]$min_evalue <- NA
+    taxid_tally[[taxid]]$max_evalue <- NA
+  }
+  
+  if (length(pct_ids) > 0) {
+    taxid_tally[[taxid]]$median_pct_id <- median(pct_ids, na.rm = TRUE)
+    taxid_tally[[taxid]]$min_pct_id <- min(pct_ids, na.rm = TRUE)
+    taxid_tally[[taxid]]$max_pct_id <- max(pct_ids, na.rm = TRUE)
+  } else {
+    taxid_tally[[taxid]]$median_pct_id <- NA
+    taxid_tally[[taxid]]$min_pct_id <- NA
+    taxid_tally[[taxid]]$max_pct_id <- NA
+  }
+}
+
+# Return the final taxid_tally
+return(taxid_tally)
 }
 
 # Function to get lineage of a taxon
@@ -237,7 +299,25 @@ identify_lca <- function(taxids) {
 # Process the file
 taxid_tally <- process_blast_file(annotated_blast_output)
 
+# Initialize an empty cache
+taxonomy_cache <- list()
 
+# Cached version of getTaxonomy
+get_cached_taxonomy <- function(taxid, ncbi_tax_db) {
+  # Check if the result is already in the cache
+  if (!is.null(taxonomy_cache[[as.character(taxid)]])) {
+    return(taxonomy_cache[[as.character(taxid)]])
+  }
+  
+  # If not in the cache, query the database
+  taxonomy_info <- getTaxonomy(taxid, ncbi_tax_db)
+  
+  # Store the result in the cache
+  taxonomy_cache[[as.character(taxid)]] <- taxonomy_info
+  
+  # Return the result
+  return(taxonomy_info)
+}
 
 # Output results to file
 output_results <- function(taxid_tally, output_suffix) {
@@ -258,36 +338,34 @@ output_results <- function(taxid_tally, output_suffix) {
                           )
   str(taxid_tally)
   for (taxid in names(taxid_tally)) {
-    taxonomy_info <- getTaxonomy(taxid, ncbi_tax_db )
-    scientific_name <- ifelse(is.null(taxonomy_info[1,7]), NA, taxonomy_info[1,7])
-    if(is.na(scientific_name)) next
-    scientific_name <- gsub("'", "", scientific_name, fixed = TRUE)
-    scientific_name <- gsub(" ", "_", scientific_name, fixed = TRUE)
-    scientific_name <- gsub("#", "_", scientific_name, fixed = TRUE)
+    taxonomy_info <- get_cached_taxonomy(taxid, ncbi_tax_db )
+    # Function to clean and format strings
+    clean_string <- function(x) {
+      if (is.null(x) || is.na(x)) return(NA)
+      x <- gsub("[' #]", "_", x)
+      return(x)
+    }
 
-    family <- ifelse(is.null(taxonomy_info[1,5]), NA, taxonomy_info[1,5])
-    if(is.na(family))next
-    family <- gsub("'", "", family, fixed = TRUE)
-    family <- gsub(" ", "_", family, fixed = TRUE)
-    family <- gsub("#", "_", family, fixed = TRUE)
+    # Extract and clean scientific_name
+    scientific_name <- clean_string(taxonomy_info[1, 7])
+    if (is.na(scientific_name)) next
+
+    # Extract and clean family
+    family <- clean_string(taxonomy_info[1, 5])
+    if (is.na(family)) next
+
+    # Get common name and handle cases where it might be empty
     common_info <- getCommon(taxid, ncbi_tax_db, c("genbank common name", "common name"))
-    
-    # Handle cases where common_info might be empty
-    if (length(common_info) > 0 && !is.null(common_info[[1]]$name)) {
-      common_name <- common_info[[1]]$name[1]
+    common_name <- if (length(common_info) > 0 && !is.null(common_info[[1]]$name)) {
+      common_info[[1]]$name[1]
     } else {
-      common_name <- NA
+      "Unknown"
     }
-    if (is.na(common_name)) common_name <- "Unknown"
-    common_name <- gsub(" ", "_", common_name, fixed=TRUE)
-    common_name <- gsub("'", "", common_name, fixed = TRUE)
-    
-    kingdom <- ifelse(is.null(taxonomy_info[1,1]), NA, taxonomy_info[1,1])
-    if (!is.null(filter) && !is.na(kingdom)){
-      if (kingdom != filter){
-        next
-      }
-    }
+    common_name <- clean_string(common_name)
+
+    # Extract and check kingdom
+    kingdom <- clean_string(taxonomy_info[1, 1])
+    if (!is.null(filter) && !is.na(kingdom) && kingdom != filter) next
     
     # Check if any of these are NA, and if so, handle accordingly
     tally <- length(taxid_tally[[taxid]]$queries)
@@ -328,4 +406,6 @@ output_results <- function(taxid_tally, output_suffix) {
 
 # Call output_results function
 output_results(taxid_tally, output_suffix)
+  
+  
 

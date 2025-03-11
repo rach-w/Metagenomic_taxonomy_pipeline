@@ -11,7 +11,7 @@ library(stringr)
 option_list = list(
     make_option(c("-i", "--input"), type="character", help="input virus taxa matrix to generate heatmap of"),
     make_option(c("-c", "--color"), type="character", default= "viridis", help="change color of heatmap" ),
-    make_option(c("-f", "--family"), type="logical", default=FALSE, help"plot family level")
+    make_option(c("-f", "--family"), type="logical", default=FALSE, help= "plot family level" )
 )
 # Parse the arguments
 opt = parse_args(OptionParser(option_list=option_list))
@@ -23,24 +23,38 @@ plot_family = opt$family
 
 tally_vals <- read.table(taxa_matrix, header = TRUE, stringsAsFactors = FALSE, sep = "\t")
 
-#generate heatmao
-#tidy_heatmap(tally_vals, rows = TAXID, columns = Barcode, values = Normalized_tally , filename = "heatmap.pdf")  + scale_fill_viridis()                    
-if(plot_family){
-  ggplot(tally_vals, aes(x = Family, Barcode)) +
+# Assuming you have a column in your data called 'Tool' that indicates whether it's DIAMOND or BLASTn
+# If not, you can create one based on the 'Blastn_color' column
+
+# Generate heatmap
+# Generate heatmap
+if (plot_family) {
+  p <- ggplot(tally_vals, aes(x = family, y = Barcode)) +
     geom_tile(aes(fill = Normalized_tally)) +
     scale_y_discrete(labels = function(x) str_wrap(x, width = 5)) +
     scale_fill_viridis() +
-    theme(axis.text.x = element_text(angle = 90, color=tally_vals$Blastn_color,size=3)) +
-    theme(axis.text.y = element_text(angle = 70, size=4))+
-    theme(legend.position = "bottom")
-}else{
-  ggplot(tally_vals, aes(x = Scientific_Name, Barcode)) +
+    theme(axis.text.x = element_text(angle = 90, color = tally_vals$Blastn_color, size = 3)) +
+    theme(axis.text.y = element_text(angle = 70, size = 4)) +
+    theme(legend.position = "bottom") +
+    labs(caption = "Red: DIAMOND | Blue: BLASTn") +  # Add caption below the plot
+    theme(plot.caption = element_text(hjust = 0.5, size = 10, color = "black"))  # Customize caption
+} else {
+  p <- ggplot(tally_vals, aes(x = Scientific_Name, y = Barcode)) +
     geom_tile(aes(fill = Normalized_tally)) +
     scale_y_discrete(labels = function(x) str_wrap(x, width = 5)) +
     scale_fill_viridis() +
-    theme(axis.text.x = element_text(angle = 90, color=tally_vals$Blastn_color,size=3)) +
-    theme(axis.text.y = element_text(angle = 70, size=4))+
-    theme(legend.position = "bottom")
+    theme(axis.text.x = element_text(angle = 90, color = tally_vals$Blastn_color, size = 3)) +
+    theme(axis.text.y = element_text(angle = 70, size = 4)) +
+    theme(legend.position = "bottom") +
+    labs(caption = "Red: DIAMOND | Blue: BLASTn") +  # Add caption below the plot
+    theme(plot.caption = element_text(hjust = 0.5, size = 10, color = "black"))  # Customize caption
 }
+
+
+
+# Print the plot
+print(p)
+
+
 
 

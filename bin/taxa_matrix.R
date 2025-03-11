@@ -2,7 +2,7 @@
 
 # Load necessary libraries
 library(argparse)
-
+library(taxonomizr)
 # Create an ArgumentParser object
 parser <- ArgumentParser(description = "Process input tally files")
 
@@ -23,13 +23,14 @@ parser$add_argument("input_tally", nargs = "+", type = "character",
                     help = "Space-separated list of input tally matrices")
 parser$add_argument("-o", "--output_file", type = "character", default="taxa_matrix.tsv", 
                     help="Name of output file to output to")
-parser$add_argument("-f", "--family_level", action = "store_true", default = FALSE,
-                    help = "Only display family level taxonomic information")
+parser$add_argument("-n", "--ncbi_database", type="character",
+                    help = "taxonomy database for family level lookup")
 
 
 # Parse the arguments 
 args <- parser$parse_args()
 
+taxonomyDatabase <- args$ncbi_database
 
 # Read taxids file if provided
 taxids <- character()
@@ -51,7 +52,8 @@ output <- data.frame(
                         Common_Name = character(),
                         Family = character(),
                         Kingdom = character(),
-                        Tally = numeric()
+                        Tally = numeric(),
+                        Blastn_color = character()
                           )
 
 for (tally_file in args$input_tally) {
@@ -87,20 +89,20 @@ for (tally_file in args$input_tally) {
       normalized_tally <- tally_data[i, 7]
       median_evalue<- tally_data[i,8]
       min_evalue <- tally_data[i,9]
-      max_evalue <- tally_data[i,10]
+      max_evalue <- tally_data[i,1-]
       median_pct_id <- tally_data[i,11]
     } else {
       taxid <- tally_data[i, 1]
       scientific_name <- tally_data[i, 2]
       common_name <- tally_data[i, 3]
-      family <- tally_data[i, 4]
-      kingdom <- tally_data[i, 5]
-      tally <- tally_data[i, 6]
-      normalized_tally <- tally_data[i,7]
-      median_evalue<- tally_data[i,8]
-      min_evalue <- tally_data[i,9]
-      max_evalue <- tally_data[i,10]
-      median_pct_id <- tally_data[i,11]
+      #family <- tally_data[i, 4]
+      kingdom <- tally_data[i, 4]
+      tally <- tally_data[i, 5]
+      normalized_tally <- tally_data[i,6]
+      median_evalue<- tally_data[i,7]
+      min_evalue <- tally_data[i,8]
+      max_evalue <- tally_data[i,9]
+      median_pct_id <- tally_data[i,10]
     }
 
     if (nchar(taxid) == 0) {
@@ -129,7 +131,15 @@ for (tally_file in args$input_tally) {
         taxids <- c(taxids, taxid)
       }
     }
-
+    # Look up family using taxonomizr
+    if (taxid != "X") {
+      family <- getTaxonomy(taxid, taxonomyDatabase, desiredTaxa = "family")
+      if (is.na(family)){
+        next
+      }
+    } else {
+      family <- "Unknown"
+    }
     # Populate data frame
     output <- rbind(output, data.frame(
             Barcode = barcode,
