@@ -119,20 +119,17 @@ fasta_sequences <- readDNAStringSet(fasta_file, format="fasta")
 for (i in 1:length(fasta_sequences)) {
   query <- names(fasta_sequences)[i]
   if (!is.null(queries[[query]])) {
-    kingdom <- queries[[query]]$super_kingdom
-    scientific_name <- queries[[query]]$scientific_name
-    print(paste("Kingdom:", kingdom))
     for (taxid in queries[[query]]$best_taxids) {
       if ((output_taxid_subset && taxid %in% taxids_to_filter) || !output_taxid_subset) {
         if (opt$min_tally != 0 && taxid_tally[taxid] < opt$min_tally) next
+        #get names from taxonomizr
+        #faster way to do this?
+        taxonomy_info <- getTaxonomy(taxid, ncbi_tax_db )
+        scientific_name <- ifelse(is.null(taxonomy_info[1,7]), NA, taxonomy_info[1,7])
+        kingdom <- ifelse(is.null(taxonomy_info[1,1]), NA, taxonomy_info[1,1])
+        if (is.na(kingdom)|| is.na(scientific_name)) next
         
-        if (is.null(kingdom) || is.na(kingdom)) {
-            taxonomy_info <- getTaxonomy(taxid, ncbi_tax_db )
-            scientific_name <- ifelse(is.null(taxonomy_info[1,7]), NA, taxonomy_info[1,7])
-            kingdom <- ifelse(is.null(taxonomy_info[1,1]), NA, taxonomy_info[1,1])
-            if (is.na(kingdom)|| is.na(scientific_name)) next
-        }
-        
+        print(paste("Kingdom:", kingdom))
         if (opt$virus_only != FALSE && kingdom != "Viruses") next
         
         #remove potential characters that would break file name
