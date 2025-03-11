@@ -13,9 +13,9 @@ This Nextflow pipeline is designed for metagenomic analysis, specifically for id
 ## Usage
 Create a new conda env with environment.yml to get all dependencies
 
-'''bash
+```bash
 conda env create -f environment.yml
-'''
+```
 
 To run the pipeline, use the following command:
 
