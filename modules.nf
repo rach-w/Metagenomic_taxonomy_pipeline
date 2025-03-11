@@ -457,7 +457,7 @@ process Quantify_Read_Mapping {
   output:
   tuple val(base), path("${base}_contigs.fasta")
   path("${base}_contig_weights.txt")
-  path('contig_mapping.sam')
+  path("contig_mapping.sam")
 
   publishDir "${outDir}/read_mapping", mode:'copy'
 

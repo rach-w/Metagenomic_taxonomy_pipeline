@@ -178,20 +178,19 @@ println "Input Directory: ${inDir}"
 
 // Create a channel for the input files.
 
-if(params.single_read != false){
-    //pull file 
-    inputFiles_ch= Channel.fromPath("${inDir}/*.f*q*")
-    //creates tuple with base file name & file
-    .map{ it -> [it[0], it[1][0]]}
-}else{
-
-    // Pull from pairs of files (illumina fastq files denoted by having R1 or R2 in
-    // the file name)
-    inputFiles_ch = Channel.fromFilePairs("${inDir}/*_*{1,2}*.f*q*")
-    // The .fromFilePairs() function spits out a list where the first 
-    // item is the base file name, and the second is a list of the files.
-    // This command creates a tuple with the base file name and two files.
-    .map { it -> [it[0], it[1]]}
+if (params.single_read != false) {
+    // Single-end reads
+    inputFiles_ch = Channel.fromPath("${inDir}/*.f*q*")
+        .map { file -> 
+            baseName = file.getBaseName() // Extract the base name of the file
+            [baseName, file] // Create a tuple with the base name and the file
+        }
+} else {
+    // Paired-end reads
+    inputFiles_ch = Channel.fromFilePairs("${inDir}/*.f*q*") { file ->
+        // Extract everything before the first underscore
+        file.getBaseName().split("_")[0]
+    }
 }
 // Checks the output parameter.
 outDir = ''
