@@ -11,6 +11,11 @@ This Nextflow pipeline is designed for metagenomic analysis, specifically for id
 - Required software tools (e.g., Trimmomatic, SPAdes, BLAST, DIAMOND, etc.) should be installed and available in your `PATH`.
 
 ## Usage
+Create a new conda env with environment.yml to get all dependencies
+
+'''bash
+conda env create -f environment.yml
+'''
 
 To run the pipeline, use the following command:
 
