@@ -602,7 +602,7 @@ process Ncbi_Tax_Setup {
     } else {
         cat("Preparing database. This may take several hours...\\n")
         tryCatch({
-        prepareDatabase(sqlFile, protocol = 'http')
+        prepareDatabase(sqlFile, protocol = 'http', getAccessions=FALSE)
         cat("Database preparation completed successfully.\\n")
         }, error = function(e) {
         cat("Error occurred during database preparation:", conditionMessage(e), "\\n")
@@ -676,7 +676,7 @@ process Blastn_Contigs{
 
   input:
   tuple val(base), path(contigs)  
-  val (blast_tax_dir)
+  path (blast_tax_dir)
   val max_nt_evalue
   val(local_nt_database)
   val threads
@@ -708,7 +708,7 @@ process Blastn_Contigs{
 
   # have to set this environmental variable so blast can be taxonomically aware 
   # poorly documented feature of command line blast 
-  export BLASTDB="$blast_tax_dir"
+  export BLASTDB=\$BLASTDB:"$blast_tax_dir"
 
   # run the megablast 
   blastn -num_threads ${threads} -db ${local_nt_database} -task megablast -evalue ${max_nt_evalue} -query ${contigs} -outfmt "6 $blastn_columns" -out ${contigs}.bn_nt
@@ -761,6 +761,7 @@ process Tally_Blastn_Results {
 
   output:
   path("*bn_nt.tally") 
+  path("tax_cache.Rds")
   publishDir "${outDir}/blastn_tally", mode:'link'
   script:
 
@@ -780,6 +781,7 @@ process Distribute_Blastn_Results {
     tuple val(base), path(contigs), path(blast_out) 
     path(tax_db)
     val outDir
+    path(tax_cache)
 
     output:                                                                       
     tuple val(base), path("*.fasta_*") 
@@ -789,7 +791,7 @@ process Distribute_Blastn_Results {
     script:
     """
     # pull out virus-derived reads - this will create a file for each viral taxon
-    Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db} -f ${contigs} -b ${blast_out} -v TRUE
+    Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db} -f ${contigs} -b ${blast_out} -k "Viruses"
     """
 }
 
@@ -870,6 +872,7 @@ process Tally_Blastx_Results {
 
   output:
   path("*bx_nr.tally")
+  path("tax_cache.Rds")
 
   publishDir "${outDir}/blastx_tally", mode:'copy'
 
@@ -887,16 +890,18 @@ process Distribute_Blastx_Results {
   tuple val(base), path(contigs), path(blastx_out) 
   path(tax_db) 
   val outDir
+  path(tax_cache)
 
   output:
   tuple val(base), path("*.fasta_*") 
+  
   publishDir "${outDir}/blastx_virus_reads", mode:'copy'
 
   script:
   """
   # pull out desired reads - can change for virus or other kingdom
 
-  Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db}  -f ${contigs} -b ${blastx_out} -d TRUE -v TRUE
+  Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db}  -f ${contigs} -b ${blastx_out} -d TRUE -k "Viruses"
   """
 }
 /*

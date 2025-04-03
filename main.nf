@@ -436,7 +436,7 @@ workflow {
         //perform tally on blast results
         Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
         //create seperate fasta files for top hits of blastn search
-        Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
+        Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir, Tally_Blastn_Results.out[1])
 
         //collect all unmatched files after blastn search into one file to enter for diamond
         Process_Blastn_Output.out[3]
@@ -456,7 +456,7 @@ workflow {
         //tally results from blastx
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
         //distribute into fasta files from results
-        Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
+        Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir, Tally_Blastn_Results.out[1])
         //combine all tally files to one channel
         Tally_Blastx_Results.out[0]
             .mix(Tally_Blastn_Results.out[0])
@@ -493,16 +493,17 @@ workflow {
             //perform tally on blast results
             Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
             //create seperate fasta files for top hits of blastn search
-            Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
+            Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir, Tally_Blastn_Results.out[1])
 
             //collect all unmatched files after blastn search into one file to enter for diamond
             Process_Blastn_Output.out[3]
-                .collectFile(name:'merged_contigs.fasta')
-                .set{merged_blastx_ch}
-                
+                    .collectFile(name:'merged_contigs.fasta')
+                    .set{merged_blastx_ch}
+                    
             //use blastx/diamond to search nr database for contigs that didn't match previously
             
             Blastx_Remaining_Contigs(merged_blastx_ch, diamond_database, checked_blast_tax, params.threads)
+
             //combine blastx output with rest of info from blastn
             Blastx_Remaining_Contigs.out[0]
                 .combine(Process_Blastn_Output.out[0])     
@@ -512,7 +513,7 @@ workflow {
             //tally results from blastx
             Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
             //distribute into fasta files from results
-            Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
+            Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir, Tally_Blastn_Results.out[1])
             //combine all tally files to one channel
             Tally_Blastx_Results.out[0]
                 .mix(Tally_Blastn_Results.out[0])
@@ -547,7 +548,7 @@ workflow {
         //perform tally on blast results
         Tally_Blastn_Results(Process_Blastn_Output.out[2], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
         //create seperate fasta files for top hits of blastn search
-        Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir)
+        Distribute_Blastn_Results(Process_Blastn_Output.out[1], setup_ncbi_dir, outDir, Tally_Blastn_Results.out[1])
 
         //collect all unmatched files after blastn search into one file to enter for diamond
         Process_Blastn_Output.out[3]
@@ -555,8 +556,9 @@ workflow {
                 .set{merged_blastx_ch}
                 
         //use blastx/diamond to search nr database for contigs that didn't match previously
-            
+           
         Blastx_Remaining_Contigs(merged_blastx_ch, diamond_database, checked_blast_tax, params.threads)
+
         //combine blastx output with rest of info from blastn
         Blastx_Remaining_Contigs.out[0]
             .combine(Process_Blastn_Output.out[0])     
@@ -566,7 +568,7 @@ workflow {
         //tally results from blastx
         Tally_Blastx_Results(Split_Merged_Blastx_Results.out[0], setup_ncbi_dir, outDir, Remove_PCR_Duplicates.out[2])
         //distribute into fasta files from results
-        Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir)
+        Distribute_Blastx_Results(Split_Merged_Blastx_Results.out[1], setup_ncbi_dir, outDir, Tally_Blastn_Results.out[1])
         //combine all tally files to one channel
         Tally_Blastx_Results.out[0]
             .mix(Tally_Blastn_Results.out[0])

@@ -23,11 +23,12 @@ library(optparse)
 library(RSQLite)
 library(Biostrings)
 library(taxonomizr)
+library(parallel)
 
 
 # Define command-line options
 option_list = list(
-  make_option(c("-v", "--virus_only"), type="logical", default=FALSE, help="Only output virus taxids"),
+  make_option(c("-k", "--kingdom"), type="character", help="Filter for a kingdom"),
   make_option(c("-x", "--taxid_file"), type="character", help="File containing taxids to filter"),
   make_option(c("-c", "--min_tally"), type="numeric", default=0, help="Tally cutoff for output (default 0)"),
   make_option(c("-n", "--ncbi_tax_db"), type="character", help="Path to NCBI Taxonomy sqlite database"),
@@ -38,9 +39,9 @@ option_list = list(
 )
 
 opt = parse_args(OptionParser(option_list=option_list))
-
+num_cores = detectCores() -1
 ncbi_tax_db = opt$ncbi_tax_db
-
+filter = opt$kingdom
 # Handle input files
 fasta_file = opt$fasta_file
 blast_file = opt$blast_file
@@ -67,7 +68,7 @@ higher_level_taxids <- sapply(taxids_to_filter, function(t) {
 })
 
 # Parse BLAST output and create a map of queries to best hits
-blast_results <- read.table(blast_file, header = FALSE, sep = "\t", fill = TRUE, stringsAsFactors = FALSE)
+blast_results <- read.table(blast_file, header = TRUE, sep = "\t", fill = TRUE, stringsAsFactors = FALSE)
 if(opt$diamond != FALSE){
 colnames(blast_results) <- c("query_id", "subject_id", "percent_identity", "alignment_length", "mismatches", 
                              "gap_openings", "query_start", "query_end", "subject_start", "subject_end", 
@@ -88,11 +89,12 @@ for (i in 1:nrow(blast_results)) {
   bit_score <- row$bit_score
   
   scientific_name <- row$scientific_name
+  scientific_name <- gsub("/", "_", scientific_name, fixed = TRUE)
   super_kingdom <- row$super_kingdom
   if(!is.na(as.numeric(row$taxid))){
       taxid <- row$taxid
   }else{
-      taxid <- accessionToTaxa(row$taxid, ncbi_tax_db)    
+      next  
   }
   
   if (!is.null(queries[[query]])) {
@@ -112,8 +114,27 @@ for (i in 1:nrow(blast_results)) {
 }
 
 # Tally scores for each taxid
-taxid_tally <- table(unlist(lapply(queries, function(q) q$best_taxids)))
+taxid_tally <- table(unlist(mclapply(queries, function(q) q$best_taxids, mc.cores=num_cores)))
 
+# Initialize an empty cache
+taxonomy_cache <- readRDS("tax_cache.Rds")
+
+# Cached version of getTaxonomy
+get_cached_taxonomy <- function(taxid, ncbi_tax_db) {
+  # Check if the result is already in the cache
+  if (taxonomy_cache$has(as.character(taxid))) {
+    return(taxonomy_cache$get(as.character(taxid)))
+  }
+  
+  # If not in the cache, query the database
+  taxonomy_info <- getTaxonomy(taxid, ncbi_tax_db)
+  
+  # Store the result in the cache
+  taxonomy_cache$set(as.character(taxid), taxonomy_info)
+  
+  # Return the result
+  return(taxonomy_info)
+}
 # Read FASTA file and filter based on taxid
 fasta_sequences <- readDNAStringSet(fasta_file, format="fasta")
 for (i in 1:length(fasta_sequences)) {
@@ -124,13 +145,13 @@ for (i in 1:length(fasta_sequences)) {
         if (opt$min_tally != 0 && taxid_tally[taxid] < opt$min_tally) next
         #get names from taxonomizr
         #faster way to do this?
-        taxonomy_info <- getTaxonomy(taxid, ncbi_tax_db )
+        taxonomy_info <- get_cached_taxonomy(taxid, ncbi_tax_db)
         scientific_name <- ifelse(is.null(taxonomy_info[1,7]), NA, taxonomy_info[1,7])
         kingdom <- ifelse(is.null(taxonomy_info[1,1]), NA, taxonomy_info[1,1])
         if (is.na(kingdom)|| is.na(scientific_name)) next
         
         print(paste("Kingdom:", kingdom))
-        if (opt$virus_only != FALSE && kingdom != "Viruses") next
+        if (!is.null(filter) && kingdom != filter) next
         
         #remove potential characters that would break file name
         #TODO: get this in a nicer written way
@@ -140,6 +161,7 @@ for (i in 1:length(fasta_sequences)) {
         scientific_name <- gsub("]", "_", scientific_name, fixed = TRUE)
         scientific_name <- gsub("(", "_", scientific_name, fixed = TRUE)
         scientific_name <- gsub(")", "_", scientific_name, fixed = TRUE)
+        scientific_name <- gsub("#", "_", scientific_name, fixed = TRUE)
         filename <- paste0(fasta_file,"_",taxid,"_",  scientific_name, ".fa" )
         filename <- gsub("'", "", filename, fixed = TRUE)
         writeXStringSet(fasta_sequences[i], filepath = filename, append = TRUE)
