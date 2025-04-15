@@ -90,6 +90,11 @@ for (i in 1:nrow(blast_results)) {
   
   scientific_name <- row$scientific_name
   scientific_name <- gsub("/", "_", scientific_name, fixed = TRUE)
+  scientific_name <- gsub("[", "_", scientific_name, fixed = TRUE)
+  scientific_name <- gsub("]", "_", scientific_name, fixed = TRUE)
+  scientific_name <- gsub("(", "_", scientific_name, fixed = TRUE)
+  scientific_name <- gsub(")", "_", scientific_name, fixed = TRUE)
+  scientific_name <- gsub("#", "_", scientific_name, fixed = TRUE)
   super_kingdom <- row$super_kingdom
   if(!is.na(as.numeric(row$taxid))){
       taxid <- row$taxid

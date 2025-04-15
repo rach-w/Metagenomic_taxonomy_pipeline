@@ -791,7 +791,7 @@ process Distribute_Blastn_Results {
     script:
     """
     # pull out virus-derived reads - this will create a file for each viral taxon
-    Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db} -f ${contigs} -b ${blast_out} -k "Viruses"
+    Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db} -f ${contigs} -b ${blast_out} 
     """
 }
 
@@ -811,7 +811,7 @@ process Blastx_Remaining_Contigs{
   path("${merged_remaining_contigs}.bx_nr") 
 
   script:
-  def blastx_columns = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore staxid ssciname sskingdom"
+  def blastx_columns = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore staxids sscinames sskingdoms"
                                                                                 
   """                                                                           
   # run diamond to do a blastx-style search
@@ -901,7 +901,7 @@ process Distribute_Blastx_Results {
   """
   # pull out desired reads - can change for virus or other kingdom
 
-  Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db}  -f ${contigs} -b ${blastx_out} -d TRUE -k "Viruses"
+  Rscript ${params.scripts_bindir}/distribute_fasta_by_taxid.R -n ${tax_db}  -f ${contigs} -b ${blastx_out} -d TRUE 
   """
 }
 /*
