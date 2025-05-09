@@ -362,9 +362,4 @@ tryCatch({
 
   # Output results
   output_results(output_suffix)
-  
-  print(paste("Successfully processed", length(queries$keys()), "queries"))
-  print(paste("Output", length(taxid_tally$keys()), "unique taxids"))
-}, error = function(e) {
-  stop(paste("Script failed:", e$message))
 })

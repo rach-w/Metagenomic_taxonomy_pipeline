@@ -58,10 +58,10 @@ output <- data.frame(
 
 for (tally_file in args$input_tally) {
 
-  if(grepl("bn_nt", tally_file, fixed = TRUE) ){
-    blastn <- "blue"
-  } else{
+  if(grepl("bx_nr", tally_file, fixed = TRUE) ){
     blastn <- "red"
+  } else{
+    blastn <- "blue"
   }
   # Extract barcode from filename
   barcode <- sub("[_-].*$", "", tally_file)
@@ -75,7 +75,7 @@ for (tally_file in args$input_tally) {
 
   # Read tally file
   print(barcode)
-  tally_data <- read.table(tally_file, header = TRUE, stringsAsFactors = FALSE, sep = "\t")
+  tally_data <- read.table(tally_file, header = TRUE, stringsAsFactors = FALSE, sep = "\t", fill=TRUE)
 
 
   for (i in 1:nrow(tally_data)) {
@@ -89,20 +89,20 @@ for (tally_file in args$input_tally) {
       normalized_tally <- tally_data[i, 7]
       median_evalue<- tally_data[i,8]
       min_evalue <- tally_data[i,9]
-      max_evalue <- tally_data[i,1-]
+      max_evalue <- tally_data[i,10]
       median_pct_id <- tally_data[i,11]
     } else {
       taxid <- tally_data[i, 1]
       scientific_name <- tally_data[i, 2]
       common_name <- tally_data[i, 3]
-      #family <- tally_data[i, 4]
-      kingdom <- tally_data[i, 4]
-      tally <- tally_data[i, 5]
-      normalized_tally <- tally_data[i,6]
-      median_evalue<- tally_data[i,7]
-      min_evalue <- tally_data[i,8]
-      max_evalue <- tally_data[i,9]
-      median_pct_id <- tally_data[i,10]
+      family <- tally_data[i, 4]
+      kingdom <- tally_data[i, 5]
+      tally <- tally_data[i, 6]
+      normalized_tally <- tally_data[i,7]
+      median_evalue<- tally_data[i,8]
+      min_evalue <- tally_data[i,9]
+      max_evalue <- tally_data[i,10]
+      median_pct_id <- tally_data[i,11]
     }
 
     if (nchar(taxid) == 0) {
@@ -130,15 +130,6 @@ for (tally_file in args$input_tally) {
       if (length(taxids) == 0) {
         taxids <- c(taxids, taxid)
       }
-    }
-    # Look up family using taxonomizr
-    if (taxid != "X") {
-      family <- getTaxonomy(taxid, taxonomyDatabase, desiredTaxa = "family")
-      if (is.na(family)){
-        next
-      }
-    } else {
-      family <- "Unknown"
     }
     # Populate data frame
     output <- rbind(output, data.frame(
