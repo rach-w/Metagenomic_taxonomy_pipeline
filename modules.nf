@@ -61,6 +61,7 @@ process Setup {
 
 // Builds a bowtie2 index for a provided reference file
 process Index_Host_Reference {
+    label 'lowmem_threaded'
     input:
         // Tuple contains the reference name and reference file.
         tuple val(refName), file(ref)
@@ -90,6 +91,7 @@ process Index_Host_Reference {
 
 // Creates a fastqc report for a set of reads provided.
 process QC_Report {
+    label 'lowmem_non_threaded'
     input:
         // Tuple contains the file basename as well as the read files
         tuple val(base), path (fastq)
@@ -122,6 +124,7 @@ process QC_Report {
 
 // Performs quality and adapter trimming on a set of paired-end reads.
 process Trimming {
+    label 'lowmem_non_threaded'
     input:
     tuple val(base), path(initial_fastq)
     // The output directory
@@ -219,6 +222,7 @@ process Remove_PCR_Duplicates {
     $paired_input \
     -o ${base}_R1_fu.fastq \
     $paired_output \
+    -m 50 \
 
     deduped_reads_1=\$((\$(wc -l < ${base}_R1_fu.fastq ) /4 ))
     deduped_reads_2=\$((\$(wc -l < ${base}_R2_fu.fastq) /4 ))
@@ -231,6 +235,7 @@ process Remove_PCR_Duplicates {
 
 // Aligns reads to a reference gneome using bowtie2
 process Bowtie2Alignment {
+    label 'lowmem_threaded'
     input:
         // Tuple contains the file basename and paired-end reads
         tuple val(base), path(trimmed_fastq)
@@ -278,6 +283,7 @@ process Bowtie2Alignment {
 
 // Removes host reads by aligning to a host genome using bowtie2.
 process Host_Read_Removal {
+    label 'lowmem_threaded'
     input:
         // Tuple contains the file basename and paired-end reads
         tuple val(base), path(input_fastq) 
@@ -345,6 +351,7 @@ process Host_Read_Removal {
 }
 // Uses spades to produce a de novo assembly.
 process Spades_Assembly {
+    label 'lowmem_threaded'
     input:
         // Tuple contains the file basename and paired-end reads.
         tuple val(base), path(input_fastq)
@@ -443,7 +450,6 @@ process Retrieve_Contigs {
 process Quantify_Read_Mapping {
   label 'lowmem_threaded'
   
-
   input:
   //basename & path to one-line contigs output by read mapping
   tuple val(base), path(contigs)
@@ -517,6 +523,7 @@ process Merge_Contigs_and_Singletons {
 // Generates an alignment of the asembly contigs to a reference genome *if provided
 // using minimap.
 process Contig_Alignment {
+    label 'lowmem_threaded'
     input:
         // Tuple contains the sample basename
         // and the assembly fasta to align
@@ -553,6 +560,7 @@ process Contig_Alignment {
 
 // Writes a line to the summary file for the sample.
 process Write_Summary {
+
     input:
         // The summary string containing statistics collected as
         // the pipeline ran.
@@ -673,7 +681,6 @@ process Check_Blast_Tax {
 process Blastn_Contigs{
   label 'highmem'
                                                                             
-
   input:
   tuple val(base), path(contigs)  
   path (blast_tax_dir)
@@ -751,7 +758,7 @@ process Process_Blastn_Output {
 
 
 process Tally_Blastn_Results {
-  label 'lowmem_nonthreaded'
+  label 'lowmem_threaded'
   
   input:
   tuple val(base), path(contig_weights), path(blast_out)
@@ -862,7 +869,7 @@ process Split_Merged_Blastx_Results {
 }
 
 process Tally_Blastx_Results {
-  label 'lowmem_nonthreaded'   
+  label 'lowmem_threaded'   
 
   input:
   tuple val(base), path(contig_weights), path(blastx_out) 

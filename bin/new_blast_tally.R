@@ -62,7 +62,8 @@ option_list = list(
   make_option(c("-f", "--filter"), type="character", help="Kingdom to filter for"),
   make_option(c("-u", "--unique_reads"), type = "numeric", help="Unique reads from sample"),
   make_option(c("-o", "--num_cores"), type = "numeric", help="Number of cores to use"),
-  make_option(c("-t", "--taxonomic_level"), type= "character", help="tally at different taxonomic level such as family")
+  make_option(c("-t", "--taxonomic_level"), type= "character", help="tally at different taxonomic level such as family"),
+  make_option(c("-s", "--species_tally"), type="logical", default=FALSE, help="tally at species level vs lca")
 )
 
 # Parse the arguments
@@ -78,6 +79,7 @@ tally_cutoff <- opt$out_tally_cutoff
 filter <- opt$filter
 unique_reads <- opt$unique_reads
 num_cores <- ifelse(is.null(opt$num_cores), detectCores() - 1, opt$num_cores)
+
 
 # Initialize fastmap objects
 queries <- fastmap()
@@ -125,7 +127,7 @@ process_blast_file <- function(input_file) {
     }
     
     current_query <- queries$get(query)
-    bit_score <- as.numeric(fields[11])
+    bit_score <- as.numeric(fields[12])
     
     # Update best hits
     if (bit_score > current_query$get("best_bitscore")) {
@@ -136,7 +138,7 @@ process_blast_file <- function(input_file) {
       current_query$set("best_hits", c(current_hits, list(line)))
     }
   }
-  
+  message(paste("Processed blast file"))
   return(TRUE)
 }
 
@@ -195,40 +197,63 @@ identify_lca <- function(taxids, ncbi_tax_db) {
 
 # Process queries in parallel with fastmap
 process_queries <- function(ncbi_tax_db) {
+
   query_list <- queries$keys()
+  message(paste("Processing", length(query_list), "queries"))
   
   process_single_query <- function(query) {
-    query_data <- queries$get(query)
-    hits <- query_data$get("best_hits")
-    if (length(hits) == 0) return(NULL)
-    
-    hit_taxids <- fastmap()
-    evalues <- numeric()
-    pct_ids <- numeric()
-    
-    for (hit in hits) {
-      fields <- strsplit(hit, "\t")[[1]]
-      gi <- fields[2]
-      taxid <- gi_taxid_map$get(gi)
-      if (is.null(taxid)) taxid <- NA
+      query_data <- queries$get(query)
+      hits <- query_data$get("best_hits")
+      if (length(hits) == 0) return(NULL)
+
+      if (opt$species_tally){
+        best_hit <- hits[[1]]  # Takes first best hit if multiple
+        fields <- strsplit(best_hit, "\t")[[1]]
+        gi <- fields[2]
+        taxid <- gi_taxid_map$get(gi)
+        message(paste("Processing", taxid, "taxid"))
+        if (is.null(taxid)) return(NULL)
+        
+        # NEW: Get species-level taxid from lineage
+        #lineage <- get_lineage(taxid, ncbi_tax_db)
+        #if (is.na(lineage)) return(NULL)
+        
+        return(list(
+          taxid = taxid,
+          query = query,
+          tally = if (query_weights$has(query)) query_weights$get(query) else 1,
+          evalues = as.numeric(fields[11]),
+          pct_ids = as.numeric(fields[3])
+        ))
+    }else{
+      hit_taxids <- fastmap()
+      evalues <- numeric()
+      pct_ids <- numeric()
       
-      current_count <- if (hit_taxids$has(taxid)) hit_taxids$get(taxid) else 0
-      hit_taxids$set(taxid, current_count + 1)
+      for (hit in hits) {
+        fields <- strsplit(hit, "\t")[[1]]
+        gi <- fields[2]
+        taxid <- gi_taxid_map$get(gi)
+        if (is.null(taxid)) taxid <- NA
+        
+        current_count <- if (hit_taxids$has(taxid)) hit_taxids$get(taxid) else 0
+        hit_taxids$set(taxid, current_count + 1)
+        
+        evalues <- c(evalues, as.numeric(fields[11]))
+        pct_ids <- c(pct_ids, as.numeric(fields[3]))
+      }
       
-      evalues <- c(evalues, as.numeric(fields[11]))
-      pct_ids <- c(pct_ids, as.numeric(fields[3]))
+      lca_taxid <- identify_lca(hit_taxids$keys(), ncbi_tax_db)
+      if (is.na(lca_taxid)) return(NULL)
+      
+      return(list(
+        taxid = lca_taxid,
+        query = query,
+        tally = if (query_weights$has(query)) query_weights$get(query) else 1,
+        evalues = evalues,
+        pct_ids = pct_ids
+      ))
     }
-    
-    lca_taxid <- identify_lca(hit_taxids$keys(), ncbi_tax_db)
-    if (is.na(lca_taxid)) return(NULL)
-    
-    return(list(
-      lca_taxid = lca_taxid,
-      query = query,
-      tally = if (query_weights$has(query)) query_weights$get(query) else 1,
-      evalues = evalues,
-      pct_ids = pct_ids
-    ))
   }
   
   # Parallel processing
@@ -243,19 +268,20 @@ process_queries <- function(ncbi_tax_db) {
   
   # Filter NULL results and aggregate
   query_results <- Filter(Negate(is.null), query_results)
-  
+  message(paste("Processing", length(query_results), "queries"))
+
   # Aggregate results into taxid_tally
   for (result in query_results) {
-    lca_taxid <- as.character(result$lca_taxid)
-    if (!taxid_tally$has(lca_taxid)) {
-      taxid_tally$set(lca_taxid, fastmap())
-      taxid_tally$get(lca_taxid)$set("tally", 0)
-      taxid_tally$get(lca_taxid)$set("queries", list())
-      taxid_tally$get(lca_taxid)$set("evalues", numeric())
-      taxid_tally$get(lca_taxid)$set("pct_ids", numeric())
+    taxid <- as.character(result$taxid)
+    if (!taxid_tally$has(taxid)) {
+      taxid_tally$set(taxid, fastmap())
+      taxid_tally$get(taxid)$set("tally", 0)
+      taxid_tally$get(taxid)$set("queries", list())
+      taxid_tally$get(taxid)$set("evalues", numeric())
+      taxid_tally$get(taxid)$set("pct_ids", numeric())
     }
     
-    current <- taxid_tally$get(lca_taxid)
+    current <- taxid_tally$get(taxid)
     current$set("tally", current$get("tally") + result$tally)
     current$set("queries", c(current$get("queries"), result$query))
     current$set("evalues", c(current$get("evalues"), result$evalues))

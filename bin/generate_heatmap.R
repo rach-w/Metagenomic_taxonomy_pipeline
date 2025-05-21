@@ -44,7 +44,7 @@ if (plot_family) {
     scale_y_discrete(labels = function(x) str_wrap(x, width = 5)) +
     scale_fill_viridis() +
     theme(axis.text.x = element_text(angle = 90, color = tally_vals$Blastn_color, size = 3)) +
-    theme(axis.text.y = element_text(angle = 70, size = 4)) +
+    theme(axis.text.y = element_text(angle = 0, size = 4)) +
     theme(legend.position = "bottom", legend.key.width = unit(2, 'cm')) +
     labs(caption = "Red: DIAMOND | Blue: BLASTn") +  # Add caption below the plot
     theme(plot.caption = element_text(hjust = 0.5, size = 10, color = "black"))  # Customize caption

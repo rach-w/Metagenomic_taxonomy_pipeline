@@ -87,8 +87,8 @@ for (i in 1:nrow(blast_results)) {
   query <- row$query_id
   acc <- row$subject_id
   bit_score <- row$bit_score
-  
-  scientific_name <- row$scientific_name
+  scientific_name <- row$bit_score
+  scientific_name <- gsub(" ", "_", scientific_name, fixed=TRUE)
   scientific_name <- gsub("/", "_", scientific_name, fixed = TRUE)
   scientific_name <- gsub("[", "_", scientific_name, fixed = TRUE)
   scientific_name <- gsub("]", "_", scientific_name, fixed = TRUE)
