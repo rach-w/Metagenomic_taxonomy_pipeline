@@ -777,7 +777,7 @@ process Tally_Blastn_Results {
   // ${params.scripts_bindir}/tally_blast_hits -ntd $local_tax_db_dir/${params.ncbi_tax_db} -lca -w $contig_weights $blast_out > ${blast_out}.tally
   // ${params.scripts_bindir}/tally_blast_hits -ntd $local_tax_db_dir/${params.ncbi_tax_db} -lca -w $contig_weights -t -ti ${blast_out} > ${blast_out}.tab_tree.tally
   """
-  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blast_out} -u ${unique_reads} 
+  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blast_out} -u ${unique_reads} -s TRUE
   """
 }
 
@@ -886,7 +886,7 @@ process Tally_Blastx_Results {
   script:
   // performs tally with script (default assigns lca)
   """
-  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blastx_out} -u ${unique_reads} > ${blastx_out}.tally
+  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blastx_out} -u ${unique_reads} -s TRUE > ${blastx_out}.tally
   """
 }
 
@@ -998,7 +998,7 @@ process Virus_Mapping_Matrix {
 
   script:
   """
-  Rscript ${params.scripts_bindir}/taxa_matrix.R ${normalized_tally_files} -v
+  Rscript ${params.scripts_bindir}/taxa_matrix.R -v ${normalized_tally_files}
   """
 }
 

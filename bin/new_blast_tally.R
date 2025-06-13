@@ -114,7 +114,7 @@ process_blast_file <- function(input_file) {
     
     query <- fields[1]
     gi <- fields[2]
-    taxid <- fields[13]
+    taxid <- sub(";.*", "", fields[13])
     
     # Store GI to TaxID mapping
     gi_taxid_map$set(gi, taxid)
@@ -212,7 +212,7 @@ process_queries <- function(ncbi_tax_db) {
         gi <- fields[2]
         taxid <- gi_taxid_map$get(gi)
         message(paste("Processing", taxid, "taxid"))
-        if (is.null(taxid)) return(NULL)
+        if (is.null(taxid) || taxid == "") return(NULL)
         
         # NEW: Get species-level taxid from lineage
         #lineage <- get_lineage(taxid, ncbi_tax_db)
@@ -234,7 +234,7 @@ process_queries <- function(ncbi_tax_db) {
         fields <- strsplit(hit, "\t")[[1]]
         gi <- fields[2]
         taxid <- gi_taxid_map$get(gi)
-        if (is.null(taxid)) taxid <- NA
+        if (is.null(taxid) || taxid == "") taxid <- NA
         
         current_count <- if (hit_taxids$has(taxid)) hit_taxids$get(taxid) else 0
         hit_taxids$set(taxid, current_count + 1)
