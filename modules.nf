@@ -886,7 +886,7 @@ process Tally_Blastx_Results {
   script:
   // performs tally with script (default assigns lca)
   """
-  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blastx_out} -u ${unique_reads} -s TRUE > ${blastx_out}.tally
+  Rscript ${params.scripts_bindir}/new_blast_tally.R -n ${tax_db} -w ${contig_weights} -i ${blastx_out} -u ${unique_reads} -s TRUE 
   """
 }
 
