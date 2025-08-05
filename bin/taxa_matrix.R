@@ -59,9 +59,9 @@ output <- data.frame(
 for (tally_file in args$input_tally) {
 
   if(grepl("bx_nr", tally_file, fixed = TRUE) ){
-    blastn <- "red"
+    blastn <- "blastx"
   } else{
-    blastn <- "blue"
+    blastn <- "blastn"
   }
   # Extract barcode from filename
   barcode <- sub("[_-].*$", "", tally_file)
@@ -140,7 +140,7 @@ for (tally_file in args$input_tally) {
             Family = family,
             Kingdom = kingdom,
             Normalized_tally = normalized_tally,
-            Blastn_color = blastn
+            Blastn_Blastx = blastn
             ))
     
   }
