@@ -2,7 +2,7 @@
 
 ## Overview
 
-This Nextflow pipeline is designed for metagenomic analysis, specifically for identifying species in a host sample using a combination of de novo assembly, BLAST searches, and taxonomic classification. The pipeline processes paired-end FASTQ files, performs quality control, removes host contamination (if specified), assembles reads into contigs, and identifies species using BLASTn and BLASTx (via DIAMOND). The pipeline outputs tally files, extracted FASTA files, and a heatmap of identified microorganisms. For more detailed instructions on using this pipeline on the HCC see here: 
+This Nextflow pipeline is designed for metagenomic analysis, specifically for identifying species in a host sample using a combination of de novo assembly, BLAST searches, and taxonomic classification. The pipeline processes paired-end FASTQ files, performs quality control, removes host contamination (if specified), assembles reads into contigs, and identifies species using BLASTn and BLASTx (via DIAMOND). The pipeline outputs tally files, extracted FASTA files, and a heatmap of identified microorganisms. For more detailed instructions on using this pipeline on the HCC see here: https://github.com/rach-w/Metagenomic_taxonomy_pipeline/blob/main/additional/Metagenomic%20Pipeline%20SOP.docx 
 
 ## Requirements
 
@@ -83,4 +83,5 @@ nextflow run main.nf --help
 ## License
 
 This pipeline is distributed under the MIT License. See the `LICENSE` file for more details.
+
 
