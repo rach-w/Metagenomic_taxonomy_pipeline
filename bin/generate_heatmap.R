@@ -35,11 +35,7 @@ if (plot_family) {
     geom_tile(aes(fill = Normalized_tally)) +
     scale_y_discrete(labels = function(x) str_wrap(x, width = 5)) +
     scale_fill_viridis() +
-    theme(axis.text.x = element_text(angle = 90, color = if(tally_vals$Blastn_Blastx =="blastn"){
-      "blue"
-    }else{
-      "red"
-    }, size = 3)) +
+    theme(axis.text.x = element_text(angle = 90, color = tally_vals$Blastn_color, size = 3)) +
     theme(axis.text.y = element_text(angle = 70, size = 4)) +
     theme(legend.position = "bottom", legend.key.width = unit(2, 'cm')) +
     labs(caption = "Red: DIAMOND | Blue: BLASTn") +  # Add caption below the plot
@@ -49,11 +45,7 @@ if (plot_family) {
     geom_tile(aes(fill = Normalized_tally)) +
     scale_y_discrete(labels = function(x) str_wrap(x, width = 5)) +
     scale_fill_viridis() +
-    theme(axis.text.x = element_text(angle = 90, color = if(tally_vals$Blastn_Blastx =="blastn"){
-      "blue"
-    }else{
-      "red"
-    }, size = 3)) +
+    theme(axis.text.x = element_text(angle = 90, color = tally_vals$Blastn_color, size = 3)) +
     theme(axis.text.y = element_text(angle = 0, size = 4)) +
     theme(legend.position = "bottom", legend.key.width = unit(2, 'cm')) +
     labs(caption = "Red: DIAMOND | Blue: BLASTn") +  # Add caption below the plot
