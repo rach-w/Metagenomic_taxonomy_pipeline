@@ -2,13 +2,12 @@
 
 ## Overview
 
-This Nextflow pipeline is designed for metagenomic analysis, specifically for identifying species in a host sample using a combination of de novo assembly, BLAST searches, and taxonomic classification. The pipeline processes paired-end FASTQ files, performs quality control, removes host contamination (if specified), assembles reads into contigs, and identifies species using BLASTn and BLASTx (via DIAMOND). The pipeline outputs tally files, extracted FASTA files, and a heatmap of identified microorganisms.
+This Nextflow pipeline is designed for metagenomic analysis, specifically for identifying species in a host sample using a combination of de novo assembly, BLAST searches, and taxonomic classification. The pipeline processes paired-end FASTQ files, performs quality control, removes host contamination (if specified), assembles reads into contigs, and identifies species using BLASTn and BLASTx (via DIAMOND). The pipeline outputs tally files, extracted FASTA files, and a heatmap of identified microorganisms. For more detailed instructions on using this pipeline on the HCC see here: 
 
 ## Requirements
 
 - Nextflow (version 20.07.1 or later)
 - Java 8 or later
-- Required software tools (e.g., Trimmomatic, SPAdes, BLAST, DIAMOND, etc.) should be installed and available in your `PATH`.
 
 ## Usage
 Create a new conda env with environment.yml to get all dependencies
@@ -84,3 +83,4 @@ nextflow run main.nf --help
 ## License
 
 This pipeline is distributed under the MIT License. See the `LICENSE` file for more details.
+
