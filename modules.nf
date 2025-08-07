@@ -163,7 +163,7 @@ process Trimming {
     -a AGATCGGAAGAGC -g GCTCTTCCGATCT -a AGATGTGTATAAGAGACAG -g CTGTCTCTTATACACATCT \
     $paired_adapters \
     -q 30,30 \
-    --minimum-length ${params.post_trim_min_length} \
+    --minimum-length ${minLen} \
     -u ${params.always_trim_5p_bases} \
     -u -${params.always_trim_3p_bases} \
     $paired_trimming \
