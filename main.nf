@@ -101,20 +101,20 @@ params.host_bt2_index = false
 params.ref = false
 params.output = false
 params.always_trim_3p_bases = 0
-params.always_trim_5p_bases = 0
-params.minLen = 60
+params.always_trim_5p_bases = 1
+params.minLen = 30
 params.minTrimQual = 20
 params.single_read = false
 params.alignmentMode = "--local"
 params.phred = 33
-params.mismatches_allowed = false
+params.mismatches_allowed = 2
 params.classify_singletons = false
 params.max_blast_nt_evalue = "1e-10"
 params.max_blastx_nr_evalue = "1e-3"
 params.tally_filter_kingdom = false
 //memory parameters
 params.threads = 10
-params.scripts_bindir = false
+params.scripts_bindir = "${baseDir}/bin"
 params.minimum_contig_length = 200
 //params for databases
 params.blast_tax_url = "https://ftp.ncbi.nlm.nih.gov/blast/db/taxdb.tar.gz"
